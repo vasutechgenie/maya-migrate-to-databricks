@@ -159,8 +159,9 @@ new adapters should ship with a small synthetic example like Northwind.
 
 ## About the author
 
-**Srinivas Nelakuditi** - creator of MAYA; data platform architect and engineer focused on
-large-scale migrations to Databricks and the lakehouse.
+**Srinivas Nelakuditi** - creator of MAYA; data platform architect and AI/ML engineer
+who builds at the intersection of large-scale data migrations and applied machine learning
+on Databricks and the lakehouse.
 
 MAYA didn't start as a library - it grew out of hands-on migration work where the hard part
 was never writing SQL, it was *proving* that hundreds of rebuilt pipelines produced exactly
@@ -171,6 +172,14 @@ a per-pipeline contract, and a three-phase parity gate (dev -> SIT -> soak) that
 correctness cheaply, then at scale, then *over time*.
 
 What he works on and cares about:
+- **AI / ML engineering** - training and **fine-tuning models** (full and parameter-efficient,
+  e.g. LoRA/QLoRA), and shipping them into real workflows, not just notebooks.
+- **Retrieval-augmented generation (RAG)** - designing and building RAG systems end to end:
+  chunking, embeddings, vector search, retrieval and re-ranking, and grounded generation.
+- **Cutting-edge open-source models** - hands-on with the latest OSS LLMs and the surrounding
+  ecosystem, evaluating and adopting new models as the frontier moves.
+- **Benchmarking & evaluation** - rigorously benchmarking models, prompting/retrieval
+  strategies, and fine-tuning approaches to pick what actually works on cost, latency, and quality.
 - **Data platform migrations at scale** - Synapse, Snowflake, Redshift, Hadoop/Hive, SQL
   Server, Teradata, Oracle -> Databricks, via a clean source-adapter model.
 - **Lakehouse & medallion architecture** - bronze/silver/gold done deterministically, not by hand.
@@ -178,6 +187,9 @@ What he works on and cares about:
   *provably* equal, including sustained parity that catches slow post-cutover drift.
 - **Turning artisanal work into engineering** - graphs, contracts, reusable engines, tests,
   and CI instead of one-off rewrites.
+
+The same instinct runs through his AI and data work: replace guesswork with **measurable,
+reproducible evidence** - benchmark before you commit, validate before you certify.
 
 He also writes the hands-on [**"Migrating with MAYA"**](blog/README.md) series - a 10-part,
 step-by-step field guide that builds the entire workflow on the runnable Northwind demo.
