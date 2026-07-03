@@ -22,29 +22,35 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 # 01 - the MAYA pipeline on Northwind (make demo)
 def fig01():
-    f = Fig(860, 340, "One command, seven phases: `make demo` on Northwind", 1,
-            "MAYA turns a migration into a deterministic pipeline you can clone and run "
-            "end to end in seconds.")
-    phases = ["graph", "order", "verify", "context", "sample", "validate", "report"]
+    f = Fig(1040, 360, "One command, the full arc: `make demo` on Northwind", 1,
+            "Preview the plan, let an AI agent swarm build + certify wave by wave, then "
+            "roll it up to migration complete - clone and run end to end in seconds.")
+    phases = ["graph", "order", "verify", "context", "report",
+              "orchestrate", "sample", "validate", "certify"]
     subs = ["objects\n+ edges", "waves", "independent\ncheck", "contracts",
-            "illusion\nof prod", "dev/sit\n/soak", "PDF"]
+            "PDF\npreview", "agent\nswarm", "illusion\nof prod", "dev/sit\n/soak",
+            "migration\ncomplete"]
+    # preview phases (nothing built yet) vs build+certify loop
+    cols = [TEAL, TEAL, TEAL, TEAL, TEAL, BLUE, BLUE, BLUE, GREEN]
     n = len(phases)
-    bw, bh = 96, 46
+    bw, bh = 88, 46
     gap = (f.W - 60 - n * bw) / (n - 1)
-    y = 120
-    for i, (p, s) in enumerate(zip(phases, subs)):
+    y = 130
+    for i, (p, s, col) in enumerate(zip(phases, subs, cols)):
         x = 30 + i * (bw + gap)
-        col = TEAL if i < n - 1 else GREEN
-        f.box(x, y, bw, bh, p, fill=tint(col, .82), stroke=col, label_size=11)
+        f.box(x, y, bw, bh, p, fill=tint(col, .82), stroke=col, label_size=10.5)
         f.wrap_center(x + bw / 2, y + bh + 16, s.split("\n"), 7.6, CAPTION)
         if i < n - 1:
             f.arrow(x + bw, y + bh / 2, x + bw + gap, y + bh / 2, width=1.2)
-    f.box(30, 60, 220, 34, "git clone -> pip install", fill=tint(ACCENT, .82),
+    f.box(30, 58, 210, 32, "git clone -> pip install", fill=tint(ACCENT, .82),
           stroke=ACCENT, label_size=10)
-    f.arrow(140, 94, 78, y - 2, color=ACCENT, width=1.1)
-    f.text(30, y - 30, "Northwind: a fictional retailer migrating Azure Synapse -> "
-           "Databricks, hand-authored to run green through every phase.", 8.6, CAPTION,
-           italic=True)
+    f.text(260, 74, "Northwind: a fictional retailer migrating Azure Synapse -> Databricks, "
+           "hand-authored to run green through every phase.", 8.4, CAPTION, italic=True)
+    # phase-group labels sit just above their box groups
+    f.text(30, y - 18, "preview (nothing built yet)", 8.2, TEAL, bold=True)
+    f.text(30 + 5 * (bw + gap), y - 18, "build + certify (AI agent swarm)", 8.2, BLUE,
+           bold=True)
+    f.arrow(120, 90, 74, y - 2, color=ACCENT, width=1.1)
     return f
 
 

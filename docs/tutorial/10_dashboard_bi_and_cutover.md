@@ -26,9 +26,13 @@ BI work starts only after the gold tables it reads are MAYA-certified.
 
 ## Cutover
 Because each table is certified and each wave built on certified data, cutover is flipping consumers
-to already-proven tables. The `report` phase produces the sign-off PDF:
+to already-proven tables. But you don't declare "done" on a hunch: `maya certify` rolls every
+per-pipeline gate and every BI object into one whole-system state
+(`MIGRATION_IN_PROGRESS -> SYSTEM_PROVISIONAL -> MIGRATION_COMPLETE`); only `MIGRATION_COMPLETE`
+clears the source for retirement. The `report` phase produces the sign-off PDF:
 ```bash
-python3 cli.py report --config examples/northwind/northwind.yaml
+python3 cli.py certify --config examples/northwind/northwind.yaml
+python3 cli.py report  --config examples/northwind/northwind.yaml
 ```
 
 ## Running it on your estate
@@ -36,7 +40,8 @@ python3 cli.py report --config examples/northwind/northwind.yaml
    ship a small synthetic example like Northwind. See [../12_adapter_authoring_guide.md](../12_adapter_authoring_guide.md).
 2. **Copy `templates/project_config.example.yaml`** and point it at your discovery folder; set your
    schema->layer map, dev/sit catalogs, and soak windows.
-3. **Run the same seven phases**, wave by wave, certifying as you go.
+3. **Run the same workflow** - preview, then let the agent swarm build + certify wave by wave, and
+   finish with `maya certify` for the whole-system verdict.
 
 Everything in this tutorial is source-agnostic; only the adapter changes per source.
 

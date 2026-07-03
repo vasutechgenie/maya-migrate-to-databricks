@@ -13,6 +13,34 @@ wave by wave, each one self-validating against the source through a strict three
 parity gate. The run finishes with a single **whole-system certification**: when every
 pipeline and dashboard is certified, the migration is complete and the source can retire.
 
+## The big advantage: compress years into weeks
+
+MAYA is built on deep, hands-on expertise - **AI coding agents**, **Databricks and lakehouse
+engineering**, **AI skill/agent creation**, and **large-scale migration validation** - and it
+pairs that expertise with **your domain experts**, the people who know what each pipeline
+actually means. That combination turns a multi-year rewrite into a governed assembly line:
+
+1. **Collect everything.** Together with your domain experts, MAYA gathers the full estate -
+   metadata for every existing pipeline, the pipeline *code*, DDL, views, and the metadata
+   sitting in your config/control tables. Nothing is guessed; the source describes itself.
+2. **Build the graph and contracts.** MAYA derives one normalized dependency graph and a
+   per-pipeline **build contract** for *every* pipeline, with a complete **modernization to
+   medallion architecture** (bronze / silver / gold) baked in - not a lift-and-shift.
+3. **Preserve every gold table for automated validation.** The gold tables each pipeline
+   produces are kept intact and targeted, so parity can be proven *automatically*, table by
+   table, against the legacy system.
+4. **Give business users a live dashboard.** A ready-made dashboard lets business and program
+   stakeholders watch progress - wave by wave, gate by gate - in real time.
+5. **Run the AI swarm.** A swarm of AI agents converts and validates the pipelines **in
+   waves**, re-proving parity at each step, until the whole system is certified **done**.
+
+> **The surprise factor.** That last phase - actually converting and validating hundreds of
+> pipelines - is the part that, done by hand, takes **6 months to 2-3 years**. MAYA crunches
+> it into a small fraction of that time. *How* small is the surprise: the compression factor
+> scales directly with how well you follow the framework's rules. Clean metadata, honest
+> contracts, disciplined domain-expert review, and preserved gold tables all multiply the
+> speedup - follow the rules well and the timeline collapses from years to weeks.
+
 **Source-agnostic by design.** The core never sees your source technology - it only ever
 operates on a normalized graph. A thin **adapter** is the *only* piece that understands a
 given source, so the same engine migrates:

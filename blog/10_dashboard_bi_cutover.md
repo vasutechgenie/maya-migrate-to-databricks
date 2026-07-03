@@ -32,8 +32,10 @@ tables and dashboard views (see `templates/dashboard_control_tables.sql` and
 - **v_drift** - open parity failures by reason code, so the team fixes causes, not symptoms.
 - **v_soak_watch** - pipelines in soak, with their T+7 / T+14 due dates and drift status.
 
-The gates run G0 (scope) through G9 (soak-certified), and progress is measured against them, so
-"how far along are we" has an exact, defensible answer instead of a vibe.
+The gates run G0 (scope) through G9 (soak-certified) per pipeline, then a single **system gate
+(S)** rolls all of them - plus the BI objects - across every wave into one verdict:
+`MIGRATION_IN_PROGRESS -> SYSTEM_PROVISIONAL -> MIGRATION_COMPLETE`. So "how far along are we"
+has an exact, defensible answer instead of a vibe - right up to "is the migration done?"
 
 ## Migrating the BI layer
 
@@ -61,13 +63,17 @@ aren't proven yet.
 
 Cutover is the payoff of everything before it. Because each table is certified and each wave is
 built on certified data, cutover isn't a leap of faith - it's flipping consumers over to tables
-that have already been proven equal, including through the soak. The `report` phase produces a
-branded PDF summarizing waves, engines, parity, and connections that's genuinely useful as the
-sign-off artifact:
+that have already been proven equal, including through the soak. And you don't cut over on a hunch
+that "everything's done": `maya certify` rolls every per-pipeline gate and every BI object into
+one whole-system state, and only `MIGRATION_COMPLETE` clears the source for retirement:
 
 ```bash
-python3 cli.py report --config examples/northwind/northwind.yaml
+python3 cli.py certify --config examples/northwind/northwind.yaml
+python3 cli.py report  --config examples/northwind/northwind.yaml
 ```
+
+The `report` phase produces a branded PDF summarizing waves, engines, parity, and connections
+that's genuinely useful as the sign-off artifact.
 
 ## Running it on your estate
 
@@ -78,11 +84,12 @@ Northwind was the whole workflow in miniature. To run MAYA for real:
    template; ship a small synthetic example alongside it, exactly like Northwind.
 2. **Copy `templates/project_config.example.yaml`** to your own config: point it at your discovery
    folder, set your schema-to-layer map, your dev/sit catalogs, and your soak windows.
-3. **Run the same seven phases** you just watched, wave by wave, certifying as you go.
+3. **Run the same workflow** you just watched - preview, then let the agent swarm build and
+   certify wave by wave, and finish with `maya certify` for the whole-system verdict.
 
 Everything you saw in this series - the graph, the verified waves, the derived contracts, the seven
-engines, and the three-phase Dev -> SIT -> Soak gate - is source-agnostic. The only thing that
-changes per source is the adapter.
+engines, the three-phase Dev -> SIT -> Soak gate, and the whole-system certification - is
+source-agnostic. The only thing that changes per source is the adapter.
 
 ## Thank you
 
