@@ -157,6 +157,38 @@ Contributions welcome - see [CONTRIBUTING.md](CONTRIBUTING.md) and the
 [Code of Conduct](CODE_OF_CONDUCT.md). Keep the core source-agnostic and deterministic;
 new adapters should ship with a small synthetic example like Northwind.
 
+## About the author
+
+**Srinivas Nelakuditi** - creator of MAYA; data platform architect and engineer focused on
+large-scale migrations to Databricks and the lakehouse.
+
+MAYA didn't start as a library - it grew out of hands-on migration work where the hard part
+was never writing SQL, it was *proving* that hundreds of rebuilt pipelines produced exactly
+the same numbers as the legacy system, and kept producing them after cutover. Srinivas built
+MAYA to replace that anxiety with evidence: turn a migration into a **deterministic,
+reviewable engineering process** - one normalized dependency graph, a provable build order,
+a per-pipeline contract, and a three-phase parity gate (dev -> SIT -> soak) that certifies
+correctness cheaply, then at scale, then *over time*.
+
+What he works on and cares about:
+- **Data platform migrations at scale** - Synapse, Snowflake, Redshift, Hadoop/Hive, SQL
+  Server, Teradata, Oracle -> Databricks, via a clean source-adapter model.
+- **Lakehouse & medallion architecture** - bronze/silver/gold done deterministically, not by hand.
+- **Data quality & parity validation** - the idea that a migration isn't "done" until it's
+  *provably* equal, including sustained parity that catches slow post-cutover drift.
+- **Turning artisanal work into engineering** - graphs, contracts, reusable engines, tests,
+  and CI instead of one-off rewrites.
+
+He also writes the hands-on [**"Migrating with MAYA"**](blog/README.md) series - a 10-part,
+step-by-step field guide that builds the entire workflow on the runnable Northwind demo.
+
+**Connect / collaborate:**
+- GitHub: [@vasutechgenie](https://github.com/vasutechgenie)
+- Migrating a platform to Databricks and want to do it deterministically? Open an
+  [issue](https://github.com/vasutechgenie/maya-migrate-to-databricks/issues) or reach out.
+
+If MAYA helps you, a **star** on the repo genuinely helps others find it.
+
 ## License
 [Apache-2.0](LICENSE). "Databricks", "Azure Synapse", "Snowflake", "Amazon Redshift",
 "Apache Hadoop/Hive", "Microsoft SQL Server", "Teradata", "Oracle" and other product names
