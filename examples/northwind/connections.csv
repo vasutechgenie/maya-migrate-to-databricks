@@ -1,0 +1,6 @@
+connection,type,external_system,host,n_pipelines,notes
+syn_erp,jdbc,ext_erp,erp-sql.internal:1433,1,ERP source (Azure SQL) read by nw_ingest_erp
+adls_web,adls_gen2,ext_web,abfss://web@nwlake.dfs.core.windows.net,1,Clickstream landing files for nw_web_intake
+fx_api,rest_api,ext_fin,https://fx.example.com/v1,1,FX rates API invoked in-place by nw_fx_sync
+qlik_serving,jdbc,serving,qlik-serving.internal:5432,1,Qlik replication target for nw_qlik_replicate
+adls_archive,adls_gen2,northwind,abfss://archive@nwlake.dfs.core.windows.net,0,Cold archive (not currently used by any pipeline)

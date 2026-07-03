@@ -1,0 +1,31 @@
+# MAYA dev sampling spec - the "illusion of production" for a pipeline.
+# `cli.py maya sample` reads the pipeline context pack + this file (for FK metadata)
+# and emits RI-preserving CTAS SQL + a sample manifest.
+pipeline: nw_sales_marts
+
+defaults:
+  sample_rows: 10000
+  sampling: ri_preserving        # seed rows + foreign-key closure
+  seed: 42
+
+# reference/dimension/config tables are copied whole so joins resolve on the sample
+reference_tables:
+  - sales.dim_customer
+  - sales.dim_product
+  - metadata.etl_control
+
+# per-table overrides
+overrides:
+  src.orders: 20000
+  src.order_lines: 40000
+
+# foreign keys drive referential-integrity closure (child.col -> parent.key)
+foreign_keys:
+  src.orders:
+    - col: customer_key
+      parent_table: sales.dim_customer
+      parent_key: customer_key
+  src.order_lines:
+    - col: product_key
+      parent_table: sales.dim_product
+      parent_key: product_key

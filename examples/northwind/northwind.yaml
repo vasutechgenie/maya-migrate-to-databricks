@@ -1,0 +1,71 @@
+# Northwind - the runnable MAYA demo (a fictional retailer migrating Synapse -> Databricks).
+# Run every phase from the repo root:
+#   python3 cli.py graph   --config examples/northwind/northwind.yaml
+#   python3 cli.py order   --config examples/northwind/northwind.yaml
+#   python3 cli.py verify  --config examples/northwind/northwind.yaml
+#   python3 cli.py context --config examples/northwind/northwind.yaml
+#   python3 cli.py maya sample --config examples/northwind/northwind.yaml --pipeline nw_build_sales
+#   python3 cli.py validate --config examples/northwind/northwind.yaml --pipeline nw_build_marts --env soak
+#   python3 cli.py report  --config examples/northwind/northwind.yaml
+# or simply: make demo
+project_name: northwind
+
+adapter: adapters.synapse.adapter.SynapseAdapter
+
+# paths resolve against THIS file's directory (examples/northwind/); out/ is generated.
+graph_dir: out                 # objects.csv / edges.csv copied here by the adapter
+out_dir: out                   # derived CSV/PDF land here
+specs_dir: out/pipeline_specs
+
+pipeline_types: [PIPELINE, SYNAPSE_PIPELINE]
+table_types: [TABLE, CONFIG_TABLE]
+
+home_database: northwind        # tables in other DBs (ext_erp, ext_web, ext_fin) are external
+table_max_tb: 2.0
+
+# schema -> medallion layer
+schema_layers:
+  src: bronze
+  sales: silver
+  rdm: gold
+  serving: serving
+  metadata: config
+
+branding:
+  org: MAYA
+  dark: "#1F2430"
+  accent: "#3B4CCA"
+  show_databricks_lockup: true
+
+maya:
+  sample_rows: 10000
+  sample_overrides:
+    src.orders: 20000
+    src.order_lines: 40000
+  sampling: ri_preserving
+  seed: 42
+  dev_catalog: nw_dev
+  sit_catalog: nw_sit
+  source_ref_catalog: nw_ref
+  require_both_phases: true
+  require_soak: true
+  soak_windows_days: [7, 14]
+  soak_drift_tolerance: 0.0
+
+adapter_options:
+  # source_dir/artifacts_dir resolve from the current working directory (run from repo root)
+  source_dir: examples/northwind
+  artifacts_dir: examples/northwind/artifacts
+  bi:
+    system: powerbi
+    workspace: "Northwind BI"
+    package_dir: examples/northwind/bi_export
+    table_map:
+      dbo.FactSales: rdm.mart_sales_daily
+      dbo.DimProduct: sales.dim_product
+    genie:
+      enabled: true
+      catalog: nw_sit
+      one_space_per_dashboard: true
+    lakeview:
+      enabled: true

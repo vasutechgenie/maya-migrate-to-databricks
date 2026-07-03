@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DMA pipeline context pack",
+  "type": "object",
+  "required": ["pipeline", "wave", "pattern", "engine", "kind", "prereqs",
+               "produced", "parity"],
+  "properties": {
+    "pipeline": {"type": "string"},
+    "wave": {"type": "integer"},
+    "pattern": {"type": "string", "enum": ["A","B","C","D","E","F","G","X"]},
+    "pattern_label": {"type": "string"},
+    "engine": {"type": "string", "enum": ["E1","E2","E3","E4","E5","E6","E7"]},
+    "engine_label": {"type": "string"},
+    "kind": {"type": "string",
+             "enum": ["medallion","orchestration","external_invoke","utility"]},
+    "n_prereqs": {"type": "integer"},
+    "n_produced": {"type": "integer"},
+    "n_parity": {"type": "integer"},
+    "prereqs": {"type": "array", "items": {"type": "string"}},
+    "produced": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["table", "layer"],
+        "properties": {
+          "table": {"type": "string"},
+          "layer": {"type": "string",
+                    "enum": ["bronze","silver","gold","serving","config"]},
+          "ddl_columns": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "parity": {"type": "array", "items": {"type": "object"}},
+    "procs": {"type": "array", "items": {"type": "object"}},
+    "mermaid": {"type": "string"}
+  }
+}

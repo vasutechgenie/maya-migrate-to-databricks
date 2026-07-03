@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "maya-migrate"
+version = "0.1.0"
+description = "MAYA - a deterministic, source-agnostic accelerator for migrating data platforms (e.g. Synapse -> Databricks) with two-phase + sustained-soak parity validation."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Srinivas Nelakuditi" }]
+keywords = ["databricks", "synapse", "migration", "data-engineering",
+            "medallion", "lakehouse", "parity", "validation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Database",
+    "Topic :: Software Development :: Build Tools",
+]
+dependencies = [
+    "reportlab>=4.0",
+    "pypdf>=4.0",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+figures = ["Pillow>=10.0"]
+
+[project.urls]
+Homepage = "https://github.com/srinivasnelakuditi/maya-migrate"
+Documentation = "https://github.com/srinivasnelakuditi/maya-migrate/tree/main/docs"
+Source = "https://github.com/srinivasnelakuditi/maya-migrate"
+
+[project.scripts]
+maya = "cli:main"
+
+[tool.setuptools]
+py-modules = ["cli"]
+
+[tool.setuptools.packages.find]
+include = ["core*", "adapters*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

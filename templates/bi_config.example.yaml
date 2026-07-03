@@ -1,0 +1,29 @@
+# MAYA BI layer migration - source BI system + connector settings.
+# Merge this `adapter_options.bi` block into your project config (or keep separate and
+# pass with --config). Agents connect over MCP/API; the offline package_dir gives a
+# runnable fast-path without live credentials.
+adapter_options:
+  bi:
+    system: powerbi                 # looker | tableau | powerbi
+    # connector: adapters.bi.powerbi.PowerBIConnector   # optional explicit override
+
+    # live extraction (agent, MCP/API)
+    mcp_endpoint: "mcp://powerbi"    # MCP server, or use the tool's REST/XMLA API
+    workspace: "Enterprise BI"
+    auth: service_principal          # PAT / client_credentials / service_principal
+
+    # offline fast-path: a folder containing bi_queries.json (see docs/13)
+    package_dir: ../bi_export
+
+    # datasource table -> Databricks (certified gold) table repointing
+    table_map:
+      dbo.FactSales: rdm.mart_sales_daily
+      dbo.DimProduct: sales.dim_product
+
+    # Genie / native replication
+    genie:
+      enabled: true
+      catalog: nw_sit
+      one_space_per_dashboard: true
+    lakeview:
+      enabled: true

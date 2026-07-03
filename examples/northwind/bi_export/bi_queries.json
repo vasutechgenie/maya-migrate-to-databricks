@@ -1,0 +1,24 @@
+[
+  {
+    "obj_id": "sales_dash::revenue_by_region",
+    "system": "powerbi",
+    "dashboard": "Sales Dashboard",
+    "tile": "Revenue by region",
+    "original_query": "SELECT region, SUM(amount) AS revenue FROM dbo.FactSales GROUP BY region ORDER BY revenue DESC",
+    "converted_query": "SELECT region, SUM(amount) AS revenue FROM rdm.mart_sales_daily GROUP BY region ORDER BY revenue DESC",
+    "datasource": "NorthwindDW",
+    "target_tables": ["rdm.mart_sales_daily"],
+    "ordered": true
+  },
+  {
+    "obj_id": "sales_dash::top_products",
+    "system": "powerbi",
+    "dashboard": "Sales Dashboard",
+    "tile": "Top products",
+    "original_query": "SELECT product_name, SUM(qty) AS units FROM dbo.FactSales f JOIN dbo.DimProduct p ON f.product_id=p.product_id GROUP BY product_name",
+    "converted_query": "SELECT product_name, SUM(qty) AS units FROM rdm.mart_sales_daily f JOIN sales.dim_product p ON f.product_key=p.product_key GROUP BY product_name",
+    "datasource": "NorthwindDW",
+    "target_tables": ["rdm.mart_sales_daily", "sales.dim_product"],
+    "ordered": false
+  }
+]

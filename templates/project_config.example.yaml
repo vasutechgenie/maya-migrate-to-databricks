@@ -1,0 +1,57 @@
+# MAYA - Migration Accelerator - project config
+# Copy to <project>.yaml, edit paths + branding + maya, then run:
+#   python3 cli.py <phase> --config <project>.yaml
+# A runnable, filled-in version of this file ships as examples/northwind/northwind.yaml
+project_name: myproject
+
+# dotted path to the source adapter class
+adapter: adapters.synapse.adapter.SynapseAdapter
+
+# filesystem (relative paths resolve against this file's directory)
+artifacts_dir: artifacts         # raw exported source artifacts
+graph_dir: out/myproject         # objects.csv / edges.csv emitted here
+out_dir: out/myproject           # derived CSV/PDF land here
+specs_dir: out/myproject/pipeline_specs
+
+# graph vocabulary (defaults accept legacy synonyms)
+pipeline_types: [PIPELINE, SYNAPSE_PIPELINE]
+table_types: [TABLE, CONFIG_TABLE]
+
+# classification / sizing
+home_database: myproject         # tables in other DBs are treated as external
+table_max_tb: 2.0
+
+# medallion layer map (schema -> layer); override per source
+schema_layers:
+  src: bronze
+  ods: bronze
+  stg: silver
+  sales: silver
+  rdm: gold
+  serving: serving
+  metadata: config
+
+branding:
+  org: MAYA
+  dark: "#1F2430"
+  accent: "#3B4CCA"
+  show_databricks_lockup: true
+
+# MAYA two-phase (cost) + sustained soak (durability) validation
+maya:
+  sample_rows: 10000             # default per-table dev sample size
+  sample_overrides: {}           # e.g. {sales.fact_order: 20000}
+  sampling: ri_preserving        # ri_preserving | random | none (dev already sampled)
+  seed: 42                       # deterministic sampling seed
+  dev_catalog: myproject_dev     # holds the sampled "illusion of prod"
+  sit_catalog: myproject_sit     # holds production-copied data
+  source_ref_catalog: ""         # federated source ref used to build samples + SIT parity
+  require_both_phases: true      # MAYA-Dev AND MAYA-SIT -> provisional certification
+  require_soak: true             # soak windows must be green for final certification
+  soak_windows_days: [7, 14]     # re-validate at T+7 and T+14 after provisional cert
+  soak_drift_tolerance: 0.0      # 0 = exact; >0 only for documented non-deterministic cols
+
+# adapter-specific settings
+adapter_options:
+  source_dir: examples/northwind          # discovery dir with objects/edges/connections
+  artifacts_dir: examples/northwind/artifacts

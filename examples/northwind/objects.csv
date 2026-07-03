@@ -1,0 +1,34 @@
+object_key,name,type,layer,schema_or_domain,title,source_file,active,target_database,job_class,external_system
+nw_daily_master,nw_daily_master,PIPELINE,,orchestration,Daily master orchestrator (fan-out),artifacts/automic/nw_daily_master.xml,Y,northwind,DAILY,
+nw_ingest_erp,nw_ingest_erp,PIPELINE,,ingestion,ERP metadata-driven ingestion,artifacts/automic/nw_ingest_erp.xml,Y,northwind,DAILY,
+nw_web_intake,nw_web_intake,PIPELINE,,ingestion,Web clickstream file intake,artifacts/automic/nw_web_intake.xml,Y,northwind,DAILY,
+nw_fx_sync,nw_fx_sync,PIPELINE,,external,FX rate external-invoke sync,artifacts/automic/nw_fx_sync.xml,Y,northwind,DAILY,
+nw_build_sales,nw_build_sales,PIPELINE,,transform,Build sales silver dims + fact,artifacts/automic/nw_build_sales.xml,Y,northwind,DAILY,
+nw_build_web,nw_build_web,PIPELINE,,transform,Build web sessions silver,artifacts/automic/nw_build_web.xml,Y,northwind,DAILY,
+nw_build_marts,nw_build_marts,PIPELINE,,transform,Build gold marts,artifacts/automic/nw_build_marts.xml,Y,northwind,DAILY,
+nw_qlik_replicate,nw_qlik_replicate,PIPELINE,,serving,Replicate sales daily to serving (Qlik),artifacts/automic/nw_qlik_replicate.xml,Y,northwind,DAILY,
+ext_erp.customers,ext_erp.customers,TABLE,external,ext_erp,ERP customers (source),,Y,ext_erp,,ext_erp
+ext_erp.products,ext_erp.products,TABLE,external,ext_erp,ERP products (source),,Y,ext_erp,,ext_erp
+ext_erp.suppliers,ext_erp.suppliers,TABLE,external,ext_erp,ERP suppliers (source),,Y,ext_erp,,ext_erp
+ext_erp.orders,ext_erp.orders,TABLE,external,ext_erp,ERP orders (source),,Y,ext_erp,,ext_erp
+ext_erp.order_lines,ext_erp.order_lines,TABLE,external,ext_erp,ERP order lines (source),,Y,ext_erp,,ext_erp
+ext_web.clickstream,ext_web.clickstream,TABLE,external,ext_web,Web clickstream file feed (source),,Y,ext_web,,ext_web
+metadata.etl_control,metadata.etl_control,CONFIG_TABLE,config,metadata,ETL control / watermark table,artifacts/DW/northwind/metadata/Tables/etl_control.sql,Y,northwind,,
+src.customers,src.customers,TABLE,bronze,src,Bronze landed customers,artifacts/DW/northwind/src/Tables/customers.sql,Y,northwind,,
+src.products,src.products,TABLE,bronze,src,Bronze landed products,artifacts/DW/northwind/src/Tables/products.sql,Y,northwind,,
+src.suppliers,src.suppliers,TABLE,bronze,src,Bronze landed suppliers,artifacts/DW/northwind/src/Tables/suppliers.sql,Y,northwind,,
+src.orders,src.orders,TABLE,bronze,src,Bronze landed orders,artifacts/DW/northwind/src/Tables/orders.sql,Y,northwind,,
+src.order_lines,src.order_lines,TABLE,bronze,src,Bronze landed order lines,artifacts/DW/northwind/src/Tables/order_lines.sql,Y,northwind,,
+src.web_events,src.web_events,TABLE,bronze,src,Bronze landed web events,artifacts/DW/northwind/src/Tables/web_events.sql,Y,northwind,,
+sales.dim_customer,sales.dim_customer,TABLE,silver,sales,Customer dimension,artifacts/DW/northwind/sales/Tables/dim_customer.sql,Y,northwind,,
+sales.dim_product,sales.dim_product,TABLE,silver,sales,Product dimension,artifacts/DW/northwind/sales/Tables/dim_product.sql,Y,northwind,,
+sales.dim_supplier,sales.dim_supplier,TABLE,silver,sales,Supplier dimension,artifacts/DW/northwind/sales/Tables/dim_supplier.sql,Y,northwind,,
+sales.fact_order,sales.fact_order,TABLE,silver,sales,Order fact (line grain),artifacts/DW/northwind/sales/Tables/fact_order.sql,Y,northwind,,
+sales.web_sessions,sales.web_sessions,TABLE,silver,sales,Sessionized web events,artifacts/DW/northwind/sales/Tables/web_sessions.sql,Y,northwind,,
+rdm.mart_sales_daily,rdm.mart_sales_daily,TABLE,gold,rdm,Daily sales mart,artifacts/DW/northwind/rdm/Tables/mart_sales_daily.sql,Y,northwind,,
+rdm.mart_customer_360,rdm.mart_customer_360,TABLE,gold,rdm,Customer 360 mart,artifacts/DW/northwind/rdm/Tables/mart_customer_360.sql,Y,northwind,,
+rdm.mart_product_perf,rdm.mart_product_perf,TABLE,gold,rdm,Product performance mart,artifacts/DW/northwind/rdm/Tables/mart_product_perf.sql,Y,northwind,,
+serving.sales_daily,serving.sales_daily,TABLE,serving,serving,Serving copy of daily sales,artifacts/DW/northwind/serving/Tables/sales_daily.sql,Y,northwind,,
+sales.v_active_customers,sales.v_active_customers,VIEW,silver,sales,View: active customers,artifacts/DW/northwind/sales/Views/v_active_customers.sql,Y,northwind,,
+serving.v_exec_kpis,serving.v_exec_kpis,VIEW,serving,serving,View: executive KPIs,artifacts/DW/northwind/serving/Views/v_exec_kpis.sql,Y,northwind,,
+ext_fin.usp_load_fx,ext_fin.usp_load_fx,STORED_PROC,external,ext_fin,External FX loader proc,,Y,ext_fin,,ext_fin

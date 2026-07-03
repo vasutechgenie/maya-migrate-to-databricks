@@ -1,0 +1,60 @@
+# Per-pipeline engine configuration (write-once engines, configure many times).
+# One file per pipeline; the engine reads this instead of bespoke code.
+pipeline: nw_sales_marts
+wave: 2
+kind: medallion
+engine: E2                    # primary engine (E1..E7)
+
+# bronze: land prerequisites (no business logic)
+bronze:
+  op: jdbc_extract           # E1 op
+  sources:
+    - table: src.orders
+      connection: syn_sales
+      watermark_col: load_dt
+  target_schema: bronze_sales
+
+# silver: typed hubs + intermediate CTEs (fold scratch tables)
+silver:
+  op: sql_step
+  steps:
+    - name: sales_hubs
+      sql_file: silver/sales_hubs.sql
+  target_schema: silver_sales
+
+# gold: durable parity tables via MERGE/CTAS
+gold:
+  op: sql_step
+  target_schema: gold_sales
+  parity_tables:
+    - build: gold_sales.dim_customer
+      source: nw_ref.sales.dim_customer
+      keys: [customer_key]
+    - build: gold_sales.fact_order
+      source: nw_ref.sales.fact_order
+      keys: [order_key]
+
+# MAYA validation basis
+validation:
+  # MAYA-Dev: cheap logic proof on the sampled dev tables (volume-independent checks)
+  dev_sample:
+    catalog: nw_dev
+    checks: [schema_parity, key_parity, referential_integrity,
+             no_extra_output, idempotency, row_level_sample]
+  # MAYA-SIT: full-scale parity on production-copied data at a pinned point-in-time
+  sit_full:
+    catalog: nw_sit
+    watermark_col: load_dt
+    watermark_value: "2026-06-30 00:00:00"
+    checks: all              # all 10 checks
+  # MAYA-Soak: sustained parity while BOTH systems run in parallel. Point-in-time SIT
+  # parity proves state equality once; soak proves the ONGOING/incremental logic matches
+  # (catches merge/CDC/SCD/late-data drift that only appears after several loads).
+  soak:
+    catalog: nw_sit
+    watermark_col: load_dt
+    windows_days: [7, 14]   # re-run parity at T+7 and T+14 after provisional cert
+    checks: all             # all 10, on cumulative table AND the incremental delta window
+    drift_tolerance: 0.0    # 0 = exact; >0 only for documented non-deterministic columns
+  require_both_phases: true # MAYA-Dev + MAYA-SIT -> PROVISIONAL cert
+  require_soak: true        # + all soak windows green (zero drift) -> FINAL cert
