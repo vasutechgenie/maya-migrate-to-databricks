@@ -1,14 +1,33 @@
 # MAYA - Migration Accelerator
 
-[![ci](https://github.com/srinivasnelakuditi/maya-migrate/actions/workflows/ci.yml/badge.svg)](https://github.com/srinivasnelakuditi/maya-migrate/actions/workflows/ci.yml)
+[![ci](https://github.com/vasutechgenie/maya-migrate-to-databricks/actions/workflows/ci.yml/badge.svg)](https://github.com/vasutechgenie/maya-migrate-to-databricks/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
 
-**MAYA** turns a data-platform migration (e.g. **Azure Synapse -> Databricks**) into a
-**deterministic, reviewable engineering process** instead of an artisanal rewrite. It
-reads your exported source metadata, builds one normalized dependency graph, computes a
-provable build order, emits a per-pipeline build contract, and proves every rebuilt table
-against the source with a strict, three-phase parity gate.
+**MAYA** turns *any* data-platform migration **to Databricks** into a **deterministic,
+reviewable engineering process** instead of an artisanal rewrite. It reads your exported
+source metadata, builds one normalized dependency graph, computes a provable build order,
+emits a per-pipeline build contract, and proves every rebuilt table against the source with
+a strict, three-phase parity gate.
+
+**Source-agnostic by design.** The core never sees your source technology - it only ever
+operates on a normalized graph. A thin **adapter** is the *only* piece that understands a
+given source, so the same engine migrates:
+
+| Source | Adapter status |
+|---|---|
+| **Azure Synapse** (SQL DW + Automic/UC4) | reference adapter (shipped) |
+| **Snowflake** | adapter (SourceAdapter contract) |
+| **Amazon Redshift** | adapter |
+| **Hadoop / Hive / Spark (on-prem)** | adapter |
+| **Microsoft SQL Server / SSIS** | adapter |
+| **Teradata**, **Oracle**, **Netezza** | adapter |
+| **Informatica / ADF / dbt** (orchestration) | adapter |
+
+Every one of these lands the *same* normalized graph, so build order, contracts, engines,
+the sampler, and the three-phase parity gate are identical regardless of where you're coming
+from. Onboarding a new source is "write an adapter," not "fork the tool" - see the
+[adapter authoring guide](docs/12_adapter_authoring_guide.md).
 
 The name says how the validation works. *Maya* means "illusion": in dev you build against a
 small **illusion of production** - every table, but only a few thousand rows each - so you
@@ -33,15 +52,16 @@ flowchart LR
 
 ## 60-second quickstart (the Northwind demo)
 ```bash
-git clone https://github.com/srinivasnelakuditi/maya-migrate
-cd maya-migrate
+git clone https://github.com/vasutechgenie/maya-migrate-to-databricks
+cd maya-migrate-to-databricks
 pip install -r requirements.txt        # reportlab, pypdf, PyYAML
 
 make demo     # graph -> order -> verify -> context -> sample -> validate -> report -> bi
 make test     # the deterministic goldens for the demo
 ```
 `make demo` runs the whole pipeline on `examples/northwind/` (a fictional retailer moving
-Synapse -> Databricks) and writes every artifact to `examples/northwind/out/`:
+to Databricks - Synapse is used as the worked source, but the flow is identical for any
+source) and writes every artifact to `examples/northwind/out/`:
 a normalized graph, a verified 5-wave build order, per-pipeline contracts, RI-preserving
 dev sample SQL, MAYA parity SQL for dev/sit/soak, and a branded PDF report.
 
@@ -71,7 +91,7 @@ time. Sampling is referential-integrity-preserving (seed rows + foreign-key clos
 joins actually resolve on the sample.
 
 ## How it works
-1. **Adapter** parses your exported source into a normalized graph (`objects.csv` / `edges.csv`).
+1. **Adapter** parses your exported source (Synapse, Snowflake, Redshift, Hadoop/Hive, SQL Server, Teradata, Oracle, ...) into a normalized graph (`objects.csv` / `edges.csv`) - the single boundary between "your source" and the source-agnostic core.
 2. **Order** computes a topological build order (waves) via Tarjan SCC + longest-path layering.
 3. **Verify** re-derives the order with *different* algorithms (Kosaraju + memoized DFS + Kahn) and proves it correct - an independent check, not a rubber stamp.
 4. **Context** emits a deterministic per-pipeline contract: prereqs, produced tables (tagged bronze/silver/gold), parity targets, reachable procs, and a data-flow diagram.
@@ -112,11 +132,25 @@ cli.py              phase entrypoint
 - **BI migration + Genie AI/BI:** [docs/13_bi_layer_migration.md](docs/13_bi_layer_migration.md).
 - **Onboard a new source:** [docs/12_adapter_authoring_guide.md](docs/12_adapter_authoring_guide.md).
 
-## Running it on your estate
+## Running it on your estate (any source -> Databricks)
 Point an adapter at your exported metadata and copy `templates/project_config.example.yaml`
-to `my_project.yaml`. The reference **Synapse** adapter is implemented; other sources
-(ADF, Informatica, SSIS, Teradata, Oracle, dbt, ...) are adapter work following the same
-normalized-graph contract.
+to `my_project.yaml`. Because the core is source-agnostic, **the target is always Databricks
+but the source can be anything** - you only implement the adapter for your source.
+
+A `SourceAdapter` is small and mechanical: it does five things, then hands off to the shared
+core forever after.
+
+1. **Collect** the source artifacts (DDL, orchestration/ETL exports, catalog metadata).
+2. **Parse** them into the normalized graph (`objects.csv` / `edges.csv`).
+3. **Index** source DDL so parity checks know the columns/keys.
+4. **Inventory** connections (JDBC/ADLS/S3/API) for the connection + dashboard story.
+5. **Translate** dialect where needed (source SQL -> Spark SQL).
+
+The reference **Synapse** adapter is fully implemented as the worked example and template.
+Other sources - **Snowflake, Redshift, Hadoop/Hive, SQL Server/SSIS, Teradata, Oracle,
+Netezza, Informatica, ADF, dbt** - are adapter work that follows the exact same
+normalized-graph contract; nothing in the core changes. See the
+[adapter authoring guide](docs/12_adapter_authoring_guide.md).
 
 ## Contributing
 Contributions welcome - see [CONTRIBUTING.md](CONTRIBUTING.md) and the
@@ -124,7 +158,9 @@ Contributions welcome - see [CONTRIBUTING.md](CONTRIBUTING.md) and the
 new adapters should ship with a small synthetic example like Northwind.
 
 ## License
-[Apache-2.0](LICENSE). "Databricks" and "Azure Synapse" are trademarks of their
-respective owners; this project is not affiliated with either. See [NOTICE](NOTICE).
+[Apache-2.0](LICENSE). "Databricks", "Azure Synapse", "Snowflake", "Amazon Redshift",
+"Apache Hadoop/Hive", "Microsoft SQL Server", "Teradata", "Oracle" and other product names
+are trademarks of their respective owners; this project is not affiliated with any of them
+and names them only to describe interoperability. See [NOTICE](NOTICE).
 
 Created by **Srinivas Nelakuditi**.
