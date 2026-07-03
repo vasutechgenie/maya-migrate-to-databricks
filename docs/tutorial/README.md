@@ -5,10 +5,15 @@ This tutorial walks the entire MAYA workflow end to end on the bundled **Northwi
 command you can run right now and to a deeper reference doc. It is the durable, versioned
 companion to the "Migrating with MAYA" article series.
 
+The arc: MAYA first **previews** the migration (graph -> order -> contract -> report,
+nothing built yet), then a **swarm of AI coding agents builds the real pipelines** wave by
+wave, each self-validating through MAYA-Dev -> MAYA-SIT -> MAYA-Soak, and finally a
+**whole-system certification** (`maya certify`) declares the migration complete.
+
 ## Before you start
 ```bash
-git clone https://github.com/srinivasnelakuditi/maya-migrate
-cd maya-migrate
+git clone https://github.com/vasutechgenie/maya-migrate-to-databricks
+cd maya-migrate-to-databricks
 pip install -r requirements.txt
 make demo        # runs everything below in one shot
 ```
@@ -25,7 +30,11 @@ make demo        # runs everything below in one shot
 | 07 | [MAYA-Dev: the illusion of production](07_maya_dev_illusion.md) | `cli.py maya sample` | [MAYA validation](../08_maya_two_phase_validation.md) |
 | 08 | [MAYA-SIT: 10-check parity and the drift loop](08_maya_sit_and_drift_loop.md) | `cli.py validate --env sit` | [validation framework](../07_validation_framework.md) |
 | 09 | [MAYA-Soak: sustained parity, zero drift](09_maya_soak_sustained_parity.md) | `cli.py validate --env soak` | [MAYA validation](../08_maya_two_phase_validation.md) |
-| 10 | [Dashboard, BI/Genie, cutover, and your estate](10_dashboard_bi_and_cutover.md) | `cli.py bi ...` / `report` | [dashboard](../11_dashboard.md), [BI](../13_bi_layer_migration.md), [execution](../10_execution_plan.md) |
+| 10 | [Dashboard, BI/Genie, cutover, and your estate](10_dashboard_bi_and_cutover.md) | `cli.py bi ...` / `certify` / `report` | [dashboard](../11_dashboard.md), [BI](../13_bi_layer_migration.md), [execution](../10_execution_plan.md) |
+
+Parts 06-09 are where the **AI agent swarm** builds and self-validates the real pipelines
+(`cli.py orchestrate` drives the per-wave work queue); Part 10 closes the loop with the
+**whole-system certification** (`cli.py certify`) that marks the migration complete.
 
 Each part is self-contained but they read best in order. By the end you will have taken
 Northwind from raw source metadata to a certified, dashboarded Databricks build - and you

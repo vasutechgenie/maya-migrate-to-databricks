@@ -31,9 +31,9 @@ dev = ["pytest>=7.0"]
 figures = ["Pillow>=10.0"]
 
 [project.urls]
-Homepage = "https://github.com/srinivasnelakuditi/maya-migrate"
-Documentation = "https://github.com/srinivasnelakuditi/maya-migrate/tree/main/docs"
-Source = "https://github.com/srinivasnelakuditi/maya-migrate"
+Homepage = "https://github.com/vasutechgenie/maya-migrate-to-databricks"
+Documentation = "https://github.com/vasutechgenie/maya-migrate-to-databricks/tree/main/docs"
+Source = "https://github.com/vasutechgenie/maya-migrate-to-databricks"
 
 [project.scripts]
 maya = "cli:main"

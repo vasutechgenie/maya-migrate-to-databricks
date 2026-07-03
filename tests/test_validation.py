@@ -54,6 +54,63 @@ def test_gate_certified_when_soak_not_required():
     assert r["status"] == "CERTIFIED"
 
 
+def _cert(pipe):
+    return V.maya_gate(pipe, _all_pass(DEV), _all_pass(SIT),
+                       soak_results={"T+7": _all_pass(SOAK), "T+14": _all_pass(SOAK)})
+
+
+def _prov(pipe):
+    return V.maya_gate(pipe, _all_pass(DEV), _all_pass(SIT), soak_results=None)
+
+
+def _blocked(pipe):
+    return V.maya_gate(pipe, _all_pass(DEV), {"schema_parity": True})
+
+
+def test_system_in_progress_when_any_blocked():
+    gates = {"a": _cert("a"), "b": _blocked("b")}
+    r = V.system_certification(gates)
+    assert r["status"] == "MIGRATION_IN_PROGRESS"
+    assert r["blocking"] == ["b"]
+    assert r["totals"] == {"pipelines": 2, "certified": 1, "provisional": 0, "blocked": 1}
+
+
+def test_system_provisional_when_all_at_least_provisional():
+    gates = {"a": _cert("a"), "b": _prov("b")}
+    r = V.system_certification(gates)
+    assert r["status"] == "SYSTEM_PROVISIONAL"
+    assert r["blocking"] == ["b"]
+
+
+def test_system_complete_when_all_certified_and_no_bi():
+    gates = {"a": _cert("a"), "b": _cert("b")}
+    r = V.system_certification(gates)
+    assert r["status"] == "MIGRATION_COMPLETE"
+    assert r["blocking"] == []
+
+
+def test_system_bi_incomplete_blocks_completion():
+    gates = {"a": _cert("a"), "b": _cert("b")}
+    r = V.system_certification(gates, bi_done={"dash::t1": True, "dash::t2": False})
+    assert r["status"] == "SYSTEM_PROVISIONAL"
+    assert r["bi"] == {"done": 1, "total": 2}
+    assert "BI:1/2" in r["blocking"]
+
+
+def test_system_complete_with_all_bi_done():
+    gates = {"a": _cert("a")}
+    r = V.system_certification(gates, bi_done={"dash::t1": True})
+    assert r["status"] == "MIGRATION_COMPLETE"
+
+
+def test_system_by_wave_rollup():
+    gates = {"a": _cert("a"), "b": _prov("b"), "c": _blocked("c")}
+    waves = {"a": 0, "b": 1, "c": 1}
+    r = V.system_certification(gates, waves=waves)
+    assert r["by_wave"][0] == {"certified": 1, "provisional": 0, "blocked": 0, "total": 1}
+    assert r["by_wave"][1] == {"certified": 0, "provisional": 1, "blocked": 1, "total": 2}
+
+
 def test_soak_delta_sql_renders_window():
     t = V.for_env(_DummyCfg(), "rdm.mart_sales_daily",
                   keys=["sales_date"], columns=["sales_date", "revenue"],

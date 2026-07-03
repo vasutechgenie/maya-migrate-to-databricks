@@ -11,6 +11,7 @@ A migration is: implement an adapter, then run the phases:
   maya sample RI-preserving dev sampling SQL + manifest (the illusion of prod)
   orchestrate agent work queue: --status / --pending / --prompt / --validate
   validate    render MAYA parity checks for a phase (--env dev|sit|soak)
+  certify     whole-system rollup: is the migration complete? (--gates results.json)
   report      branded PDF report
 
 All commands take --config <project.yaml>.
@@ -108,6 +109,44 @@ def cmd_orchestrate(args):
         for r in rows:
             print(f"  w{r['wave']} {r['kind']:16} {r['engine']} {r['pipeline']}")
         print(f"pending: {len(rows)}")
+
+
+def cmd_certify(args):
+    cfg = _cfg(args)
+    idx = orch.load_index(cfg)
+    waves = {r["pipeline"]: orch._wave(r["wave"]) for r in idx}
+
+    gates = {}
+    if args.gates and os.path.exists(args.gates):
+        raw = json.load(open(args.gates))
+        for pipe, v in raw.items():
+            gates[pipe] = {"status": v} if isinstance(v, str) else v
+    else:
+        # no live parity results: every pipeline is un-certified (build in progress)
+        gates = {r["pipeline"]: {"status": "BLOCKED"} for r in idx}
+
+    bi_done = {}
+    try:
+        objs = bi_mod.load_objects(cfg)
+        bi_done = {o.obj_id: bool(getattr(o, "converted_query", "")) for o in objs}
+    except Exception:
+        bi_done = {}
+
+    r = val.system_certification(gates, bi_done=bi_done or None, waves=waves)
+    t = r["totals"]
+    print(f"certify: {r['status']}")
+    print(f"  pipelines: {t['certified']} certified / {t['provisional']} provisional / "
+          f"{t['blocked']} blocked (of {t['pipelines']})")
+    if r["bi"]["total"]:
+        print(f"  BI objects: {r['bi']['done']}/{r['bi']['total']} migrated")
+    for w, b in r["by_wave"].items():
+        print(f"  wave {w}: {b['certified']}/{b['total']} certified, "
+              f"{b['provisional']} provisional, {b['blocked']} blocked")
+    if r["blocking"]:
+        print(f"  blocking: {', '.join(str(x) for x in r['blocking'][:12])}")
+    print("  states: MIGRATION_IN_PROGRESS -> SYSTEM_PROVISIONAL -> MIGRATION_COMPLETE")
+    if not (args.gates and os.path.exists(args.gates)):
+        print("  (pass --gates <json> of pipeline->maya_gate results for live status)")
 
 
 def cmd_report(args):
@@ -263,6 +302,13 @@ def build_parser():
     val_p.add_argument("--pipeline", required=True)
     val_p.add_argument("--env", choices=["dev", "sit", "soak"], default="dev")
     val_p.set_defaults(func=cmd_validate)
+
+    cert = sub.add_parser("certify",
+                          help="whole-system rollup: is the migration complete?")
+    add_common(cert)
+    cert.add_argument("--gates", metavar="JSON",
+                      help="pipeline->maya_gate results (else reports build progress)")
+    cert.set_defaults(func=cmd_certify)
 
     r = sub.add_parser("report", help="branded PDF report")
     add_common(r)

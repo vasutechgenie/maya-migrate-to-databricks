@@ -316,3 +316,77 @@ def certification_record(pipeline: str, watermark: str, by: str, evidence: str,
         "soak_windows": soak_windows or [],   # e.g. ['T+7', 'T+14'] all green, zero drift
         "status": "CERTIFIED",
     }
+
+
+# ---- whole-system certification: "migration complete" ----------------------
+# maya_gate() certifies ONE pipeline. A migration is not done until EVERY in-scope
+# pipeline is FINAL-certified (dev + sit + soak) AND every dependent BI object is
+# migrated. system_certification() rolls the per-pipeline gates (and optional BI
+# completion) across all waves into a single system state, so a run can answer the
+# only question that matters at the end: "is the migration complete?"
+#
+# System states:
+#   - MIGRATION_IN_PROGRESS : at least one pipeline is BLOCKED (build-time parity not
+#                             yet green) - the estate is still being built.
+#   - SYSTEM_PROVISIONAL    : every pipeline is at least PROVISIONAL (all logic + scale
+#                             parity green), but some are still soaking or BI is pending.
+#                             Functionally live, not yet durably certified.
+#   - MIGRATION_COMPLETE    : every pipeline is CERTIFIED (dev + sit + soak, zero drift)
+#                             AND all BI objects are migrated - the source can be retired.
+def system_certification(pipeline_gates: dict, bi_done: Optional[dict] = None,
+                         waves: Optional[dict] = None) -> dict:
+    """Aggregate per-pipeline maya_gate() results into a whole-system verdict.
+
+    pipeline_gates: {pipeline -> maya_gate() result dict} (uses the "status" field:
+        BLOCKED / PROVISIONAL / CERTIFIED).
+    bi_done: optional {bi_obj_id -> bool}; migration is complete only when all are True.
+    waves:   optional {pipeline -> wave int} for a per-wave rollup.
+    """
+    statuses = {p: (g or {}).get("status", "BLOCKED") for p, g in pipeline_gates.items()}
+    total = len(statuses)
+    certified = [p for p, s in statuses.items() if s == "CERTIFIED"]
+    provisional = [p for p, s in statuses.items() if s == "PROVISIONAL"]
+    blocked = [p for p, s in statuses.items() if s not in ("CERTIFIED", "PROVISIONAL")]
+
+    bi_done = bi_done or {}
+    bi_total = len(bi_done)
+    bi_ok = sum(1 for v in bi_done.values() if v)
+    bi_complete = (bi_total == 0) or (bi_ok == bi_total)
+
+    if total == 0 or blocked:
+        status = "MIGRATION_IN_PROGRESS"
+    elif len(certified) == total and bi_complete:
+        status = "MIGRATION_COMPLETE"
+    else:
+        status = "SYSTEM_PROVISIONAL"
+
+    by_wave = {}
+    if waves:
+        for p, s in statuses.items():
+            w = waves.get(p, 99)
+            b = by_wave.setdefault(w, {"certified": 0, "provisional": 0,
+                                       "blocked": 0, "total": 0})
+            b["total"] += 1
+            if s == "CERTIFIED":
+                b["certified"] += 1
+            elif s == "PROVISIONAL":
+                b["provisional"] += 1
+            else:
+                b["blocked"] += 1
+        by_wave = {w: by_wave[w] for w in sorted(by_wave)}
+
+    blocking = sorted(blocked)
+    if not blocking and status != "MIGRATION_COMPLETE":
+        # nothing blocked but not complete: name what's still pending
+        blocking = sorted(provisional)
+        if bi_total and not bi_complete:
+            blocking.append(f"BI:{bi_ok}/{bi_total}")
+
+    return {
+        "status": status,
+        "totals": {"pipelines": total, "certified": len(certified),
+                   "provisional": len(provisional), "blocked": len(blocked)},
+        "bi": {"done": bi_ok, "total": bi_total},
+        "by_wave": by_wave,
+        "blocking": blocking,
+    }

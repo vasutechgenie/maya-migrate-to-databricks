@@ -15,8 +15,8 @@ that keep it deterministic, source-agnostic, and well-tested are very welcome.
 
 ## Getting set up
 ```bash
-git clone https://github.com/srinivasnelakuditi/maya-migrate
-cd maya-migrate
+git clone https://github.com/vasutechgenie/maya-migrate-to-databricks
+cd maya-migrate-to-databricks
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt pytest
 make demo    # runs the full pipeline on the Northwind example

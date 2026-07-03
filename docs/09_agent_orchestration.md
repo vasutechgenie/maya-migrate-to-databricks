@@ -43,7 +43,35 @@ starts. The sustained soak (below) then runs in parallel and does not hold the b
 A pipeline is "done" iff a VALID `authored/<pipeline>.json` exists, so batches resume
 naturally. `orchestration.status()` reports done/pending by wave and kind;
 `pending()` yields the next work items; `validate()` checks authored specs against the
-required schema per kind.
+required schema per kind. Drive it from the CLI:
+
+```bash
+maya orchestrate --status   --config project.yaml   # done/pending by wave
+maya orchestrate --pending  --config project.yaml --wave 1   # next work items
+maya orchestrate --prompt   nw_build_sales --config project.yaml   # agent prompt
+maya orchestrate --validate all --config project.yaml   # check authored specs
+```
+
+## System rollup: "is the migration complete?"
+`maya_gate()` certifies **one** pipeline (BLOCKED -> PROVISIONAL -> CERTIFIED). But a
+migration is only finished when the **whole estate** is. `validation.system_certification()`
+aggregates every per-pipeline gate (and every dependent BI object) across all waves into a
+single verdict, surfaced by `maya certify`:
+
+| System state | Meaning |
+|---|---|
+| `MIGRATION_IN_PROGRESS` | at least one pipeline is BLOCKED - the estate is still being built |
+| `SYSTEM_PROVISIONAL` | every pipeline is at least PROVISIONAL (logic + scale parity green), but some are still soaking or BI is pending - functionally live, not yet durable |
+| `MIGRATION_COMPLETE` | every pipeline is CERTIFIED (dev + sit + soak, zero drift) AND all BI is migrated - the source can be retired |
+
+```bash
+maya certify --config project.yaml                 # build-progress rollup (per wave)
+maya certify --config project.yaml --gates gates.json   # live status from real parity results
+```
+
+`--gates` takes a JSON map of `pipeline -> maya_gate() result` (or a plain
+`pipeline -> "CERTIFIED"|"PROVISIONAL"|"BLOCKED"` shorthand). Only `MIGRATION_COMPLETE`
+marks the migration done.
 
 ## What stays human
 Setup (Phase 0) and watching the dashboard. Manual review is triggered only when a

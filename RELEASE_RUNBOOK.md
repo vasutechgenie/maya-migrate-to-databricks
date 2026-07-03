@@ -14,13 +14,13 @@ with your own credentials.
 
 ```bash
 cd maya-oss
-make demo        # graph -> order -> verify -> context -> sample -> validate -> report -> bi
-make test        # 24 pytest goldens (or: python3 -m pytest)
-
-# scrub gate - must print nothing:
-grep -RInE "vizient|hrzn|\bhorizon\b" \
-  --exclude-dir=.git --exclude-dir=out --exclude-dir=workflows .
+make demo        # full workflow on Northwind (graph -> ... -> orchestrate -> ... -> certify -> report -> bi)
+make test        # pytest goldens (or: python3 -m pytest)
 ```
+
+Then run the **scrub gate** exactly as CI does - the "Scrub check (no customer references)"
+step in [.github/workflows/ci.yml](.github/workflows/ci.yml). It greps the repo for any
+customer tokens and must print nothing.
 
 All three must be clean before you push. CI (`.github/workflows/ci.yml`) re-runs the same
 three gates on push/PR across Python 3.9/3.11/3.12.
@@ -29,7 +29,7 @@ three gates on push/PR across Python 3.9/3.11/3.12.
 
 ## 1. Publish the code to GitHub
 
-`maya-oss/` becomes the repo root. Do **not** push the parent `vizient/` workspace.
+`maya-oss/` becomes the repo root. Do **not** push any parent workspace directory.
 
 ```bash
 cd maya-oss
@@ -43,7 +43,7 @@ git commit -m "MAYA v0.1.0 - open-source deterministic migration accelerator + N
 gh repo create maya-migrate --public --source=. --remote=origin --push
 
 # Option B - manual: create an empty public repo named maya-migrate in the GitHub UI, then:
-# git remote add origin https://github.com/<you>/maya-migrate.git
+# git remote add origin https://github.com/vasutechgenie/maya-migrate-to-databricks.git
 # git branch -M main
 # git push -u origin main
 ```
@@ -107,7 +107,7 @@ next part for the following day rather than forcing it.
 2. Title = the `title:` from the post's front matter (or the first `# H1`).
 3. Cover = upload `figures/NN_*.png`.
 4. Body = paste the full text from `publish_pack/NN_*.txt`.
-5. In Part 1, add a line linking to the GitHub repo (`https://github.com/<you>/maya-migrate`).
+5. In Part 1, add a line linking to the GitHub repo (`https://github.com/vasutechgenie/maya-migrate-to-databricks`).
 6. Publish (or schedule).
 7. Optional: post a short **teaser feed post** the same day linking to the Article to drive reach.
 

@@ -6,9 +6,12 @@
 
 **MAYA** turns *any* data-platform migration **to Databricks** into a **deterministic,
 reviewable engineering process** instead of an artisanal rewrite. It reads your exported
-source metadata, builds one normalized dependency graph, computes a provable build order,
-emits a per-pipeline build contract, and proves every rebuilt table against the source with
-a strict, three-phase parity gate.
+source metadata and produces a full **preview** of the migration - one normalized
+dependency graph, a provable build order, a per-pipeline contract, and a branded report -
+*before anything is built*. Then a **swarm of AI coding agents builds the real pipelines**,
+wave by wave, each one self-validating against the source through a strict three-phase
+parity gate. The run finishes with a single **whole-system certification**: when every
+pipeline and dashboard is certified, the migration is complete and the source can retire.
 
 **Source-agnostic by design.** The core never sees your source technology - it only ever
 operates on a normalized graph. A thin **adapter** is the *only* piece that understands a
@@ -29,11 +32,14 @@ the sampler, and the three-phase parity gate are identical regardless of where y
 from. Onboarding a new source is "write an adapter," not "fork the tool" - see the
 [adapter authoring guide](docs/12_adapter_authoring_guide.md).
 
-The name says how the validation works. *Maya* means "illusion": in dev you build against a
-small **illusion of production** - every table, but only a few thousand rows each - so you
-prove the logic is correct cheaply, and only then prove it at full scale on
-production-copied data. Then both systems run in parallel and MAYA re-proves parity over
-time, because a pipeline that matches at cutover can still **drift** a week later.
+The name says how the *validation* works. *Maya* means "illusion": the first thing each
+agent does after building a pipeline is prove its logic against a small **illusion of
+production** - every table, but only a few thousand rows each - so correctness is proven
+cheaply before the one expensive full-scale run. The illusion is the cheap first gate
+*inside* the build loop, not the deliverable; only when logic is proven does MAYA prove
+parity at full scale on production-copied data, and then keep re-proving it while both
+systems run in parallel, because a pipeline that matches at cutover can still **drift** a
+week later.
 
 > Everything in this repo is source-agnostic core + a reference Synapse adapter + a fully
 > runnable synthetic demo (**Northwind**). No customer data, no credentials, no live
@@ -41,13 +47,16 @@ time, because a pipeline that matches at cutover can still **drift** a week late
 
 ```mermaid
 flowchart LR
-  build["Agent builds pipeline"] --> devA["MAYA-Dev: 10k-row sample (logic)"]
-  devA -->|"logic proven"| sitB["MAYA-SIT: full-scale parity on prod copy"]
-  sitB -->|"scale proven"| prov["Provisional cert"]
-  prov --> soak["MAYA-Soak: parallel run, T+7 & T+14"]
-  soak -->|"zero drift"| cert["FINAL certified"]
+  preview["PREVIEW: graph + order + contract + report (nothing built yet)"] --> swarm["AI agent swarm builds REAL pipelines (wave N)"]
+  swarm --> devA["MAYA-Dev: illusion sample (logic)"]
   devA -->|"fail"| drift["Drift loop: fix code"]
   drift --> devA
+  devA -->|"logic proven"| sitB["MAYA-SIT: full-scale parity"]
+  sitB --> barrier{"whole wave provisional?"}
+  barrier -->|"no"| swarm
+  barrier -->|"yes, next wave"| swarm
+  barrier -->|"all waves"| soak["MAYA-Soak: parallel run T+7 & T+14"]
+  soak -->|"zero drift + BI done"| sys["System certification: MIGRATION COMPLETE"]
 ```
 
 ## 60-second quickstart (the Northwind demo)
@@ -56,24 +65,27 @@ git clone https://github.com/vasutechgenie/maya-migrate-to-databricks
 cd maya-migrate-to-databricks
 pip install -r requirements.txt        # reportlab, pypdf, PyYAML
 
-make demo     # graph -> order -> verify -> context -> sample -> validate -> report -> bi
+make demo     # graph -> order -> verify -> context -> orchestrate -> sample -> validate -> certify -> report -> bi
 make test     # the deterministic goldens for the demo
 ```
-`make demo` runs the whole pipeline on `examples/northwind/` (a fictional retailer moving
+`make demo` runs the whole workflow on `examples/northwind/` (a fictional retailer moving
 to Databricks - Synapse is used as the worked source, but the flow is identical for any
-source) and writes every artifact to `examples/northwind/out/`:
-a normalized graph, a verified 5-wave build order, per-pipeline contracts, RI-preserving
-dev sample SQL, MAYA parity SQL for dev/sit/soak, and a branded PDF report.
+source) and writes every artifact to `examples/northwind/out/`: a normalized graph, a
+verified 5-wave build order, per-pipeline contracts (the preview), the agent work queue by
+wave, RI-preserving dev sample SQL, MAYA parity SQL for dev/sit/soak, the whole-system
+certification rollup, and a branded PDF report.
 
 Run a single phase yourself:
 ```bash
-python3 cli.py graph    --config examples/northwind/northwind.yaml
-python3 cli.py order    --config examples/northwind/northwind.yaml
-python3 cli.py verify   --config examples/northwind/northwind.yaml
-python3 cli.py context  --config examples/northwind/northwind.yaml
-python3 cli.py maya sample --config examples/northwind/northwind.yaml --pipeline nw_build_sales
-python3 cli.py validate --config examples/northwind/northwind.yaml --pipeline nw_build_marts --env soak
-python3 cli.py report   --config examples/northwind/northwind.yaml
+python3 cli.py graph    --config examples/northwind/northwind.yaml   # preview: normalized graph
+python3 cli.py order    --config examples/northwind/northwind.yaml   # preview: build waves
+python3 cli.py verify   --config examples/northwind/northwind.yaml   # preview: independent order check
+python3 cli.py context  --config examples/northwind/northwind.yaml   # preview: per-pipeline contracts
+python3 cli.py report   --config examples/northwind/northwind.yaml   # preview: branded PDF
+python3 cli.py orchestrate --status --config examples/northwind/northwind.yaml   # build: agent queue by wave
+python3 cli.py maya sample --config examples/northwind/northwind.yaml --pipeline nw_build_sales   # illusion sample
+python3 cli.py validate --config examples/northwind/northwind.yaml --pipeline nw_build_marts --env soak   # MAYA parity SQL
+python3 cli.py certify  --config examples/northwind/northwind.yaml   # whole-system: migration complete?
 ```
 
 ## The MAYA validation technique (two-phase + sustained soak)
@@ -91,13 +103,17 @@ time. Sampling is referential-integrity-preserving (seed rows + foreign-key clos
 joins actually resolve on the sample.
 
 ## How it works
+*Preview (nothing is built yet - a human can review the plan first):*
 1. **Adapter** parses your exported source (Synapse, Snowflake, Redshift, Hadoop/Hive, SQL Server, Teradata, Oracle, ...) into a normalized graph (`objects.csv` / `edges.csv`) - the single boundary between "your source" and the source-agnostic core.
 2. **Order** computes a topological build order (waves) via Tarjan SCC + longest-path layering.
 3. **Verify** re-derives the order with *different* algorithms (Kosaraju + memoized DFS + Kahn) and proves it correct - an independent check, not a rubber stamp.
 4. **Context** emits a deterministic per-pipeline contract: prereqs, produced tables (tagged bronze/silver/gold), parity targets, reachable procs, and a data-flow diagram.
-5. **Engines (E1-E7)** - most pipelines are configuration + SQL, not bespoke code.
-6. **MAYA sample / validate** - build the illusion of prod, then prove parity dev -> sit -> soak.
-7. **Report** - a branded PDF summarizing waves, engines, parity, and connections.
+5. **Report** - a branded PDF previewing waves, engines, parity, and connections.
+
+*Build + certify (the AI agent swarm turns the preview into the real lakehouse):*
+6. **Orchestrate** - a pool of AI coding agents drains each wave's queue in parallel and builds the **real** pipelines with the reusable **engines E1-E7** (SQL-first), translating the actual source logic - never inventing.
+7. **MAYA sample / validate** - each agent proves its pipeline on the illusion of prod (logic), then at scale on prod-copied data (MAYA-SIT), then re-proves it in parallel run (MAYA-Soak, T+7/T+14). A **wave advances only when every pipeline in it is provisionally certified.**
+8. **Certify** - `maya certify` rolls all per-pipeline gates and BI across all waves into one system state: `MIGRATION_IN_PROGRESS` -> `SYSTEM_PROVISIONAL` -> `MIGRATION_COMPLETE`. Only `MIGRATION_COMPLETE` clears the source for retirement.
 
 ## What is reusable vs per-source
 | Reusable core (this repo) | Per-source adapter (you implement) |

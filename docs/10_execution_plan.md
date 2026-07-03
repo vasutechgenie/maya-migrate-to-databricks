@@ -73,3 +73,23 @@ flowchart LR
 ```
 
 See [13_bi_layer_migration.md](13_bi_layer_migration.md).
+
+## System gate (S) - migration complete
+The per-pipeline gates above certify one build unit; the **system gate** certifies the
+whole estate. It is the only gate that answers "is the migration done?"
+
+| Gate | Name | Passes when |
+|---|---|---|
+| S | migration_complete | **every** in-scope pipeline is at G9 (FINAL cert) **and** every BI object is at B4 |
+
+`maya certify` rolls all per-pipeline gates (and BI) across all waves into one state:
+
+```mermaid
+flowchart LR
+  ip["MIGRATION_IN_PROGRESS (some pipeline BLOCKED)"] --> sp["SYSTEM_PROVISIONAL (all >= G8, some soaking / BI pending)"]
+  sp --> mc["MIGRATION_COMPLETE (all G9 + all B4)"]
+```
+
+Only `MIGRATION_COMPLETE` clears the source systems for retirement. Run it with
+`maya certify --config project.yaml` (add `--gates <json>` of real parity results for live
+status). See [09_agent_orchestration.md](09_agent_orchestration.md).
