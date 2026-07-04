@@ -69,12 +69,42 @@ class Maya:
     soak_drift_tolerance: float = 0.0        # allowed drift fraction (0 = exact; >0 only
                                              # for documented non-deterministic columns)
 
+    # ---- Stage 2: whole-estate replication into a Databricks test catalog ------
+    # Every source table AND view is replicated into `test_catalog` and filled either by
+    # sampling the source (source_ref_catalog set) or by generating deterministic
+    # synthetic rows (synthetic_rows each) with referential integrity via topological fill.
+    test_catalog: str = "test"               # UC catalog holding the replicated test estate
+    synthetic_rows: int = 10000              # rows per table when generating synthetic data
+    test_from_source: bool = False           # True: sample test estate from source_ref_catalog;
+                                             # False (default): generate synthetic RI data offline
+
     def rows_for(self, table: str) -> int:
         return self.sample_overrides.get(table, self.sample_rows)
 
     def catalog_for(self, env: str) -> str:
         # soak runs at full scale, so it uses the SIT catalog like MAYA-SIT
         return self.sit_catalog if env in ("sit", "soak") else self.dev_catalog
+
+
+@dataclass
+class Agents:
+    """How MAYA drives the AI coding-agent swarm that builds/validates/fixes pipelines.
+
+    MAYA prepares deterministic work (contracts, prompts, parity plans) and then a pool
+    of coding agents authors the real Databricks build. The `driver` selects the backend:
+
+      * "offline" (default): a deterministic, no-LLM backend that authors specs straight
+        from the source logic + context pack, so the bundled demo runs end-to-end with
+        zero external calls and CI stays green.
+      * "cursor": drives real LLM coding agents through the Cursor SDK (`cursor_sdk`).
+        Requires CURSOR_API_KEY; runs local agents against the repo working directory.
+    """
+    driver: str = "offline"              # offline | cursor
+    model: str = "composer-2.5"          # model id for the cursor driver
+    concurrency: int = 6                 # max agents building in parallel within a wave
+    max_fix_iters: int = 5               # drift-loop attempts before a pipeline is flagged
+    publish_remote: bool = False         # Stage 6: push docs to GitHub (else local commit)
+    publish_branch: str = "main"
 
 
 @dataclass
@@ -102,6 +132,7 @@ class AcceleratorConfig:
 
     branding: Branding = field(default_factory=Branding)
     maya: Maya = field(default_factory=Maya)
+    agents: Agents = field(default_factory=Agents)
     # free-form adapter-specific settings
     adapter_options: Dict[str, Any] = field(default_factory=dict)
 
@@ -140,6 +171,7 @@ class AcceleratorConfig:
             raw = yaml.safe_load(f) or {}
         brand = raw.pop("branding", {}) or {}
         maya = raw.pop("maya", {}) or {}
+        agents = raw.pop("agents", {}) or {}
         cfg = cls(**{k: v for k, v in raw.items() if k in cls.__dataclass_fields__})
         if brand:
             cfg.branding = Branding(**{k: v for k, v in brand.items()
@@ -147,6 +179,9 @@ class AcceleratorConfig:
         if maya:
             cfg.maya = Maya(**{k: v for k, v in maya.items()
                                if k in Maya.__dataclass_fields__})
+        if agents:
+            cfg.agents = Agents(**{k: v for k, v in agents.items()
+                                   if k in Agents.__dataclass_fields__})
         # anchor relative paths to the config file's directory unless base_dir set
         if "base_dir" not in raw:
             cfg.base_dir = os.path.dirname(os.path.abspath(path)) or "."

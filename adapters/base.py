@@ -51,6 +51,54 @@ class SourceAdapter(ABC):
     def dialect_translate(self, sql: str) -> str:
         """Best-effort translate source SQL dialect -> Spark SQL (assistive only)."""
 
+    # ---- 6. Stage-1 asset exports (optional; default no-op) ----------------
+    # These make Stage 1 "collect" total: every scheduler trigger and every out-of-code
+    # config/control table is exported so nothing a pipeline depends on is missing. They
+    # ship with safe defaults so existing adapters keep working unchanged; override to
+    # export real triggers/configs from the source platform.
+    def export_schedules(self) -> List[dict]:
+        """Every scheduler trigger that invokes a pipeline.
+
+        Rows: {trigger, schedule, pipeline, enabled}. Default derives one trigger per
+        pipeline from its job_class in the graph, so the estate's invocation surface is
+        never empty; a real adapter reads the scheduler (Automic/ADF/Airflow/...).
+        """
+        try:
+            g = Graph.load(self.cfg.objects_csv(), self.cfg.edges_csv(),
+                           self.cfg.pipeline_types, self.cfg.table_types)
+        except Exception:
+            return []
+        rows = []
+        for k, o in g.objects.items():
+            if o.get("type") not in g.pipeline_types:
+                continue
+            jc = o.get("job_class", "") or "DAILY"
+            rows.append({"trigger": f"trg_{o.get('name', k)}",
+                         "schedule": jc, "pipeline": o.get("name", k),
+                         "enabled": o.get("active", "Y")})
+        return rows
+
+    def export_configs(self) -> Dict[str, List[dict]]:
+        """Config/control DB tables dumped as row dicts, keyed by table name.
+
+        Default emits a single deterministic header row per CONFIG_TABLE (from its DDL
+        columns) so the config surface is captured; a real adapter dumps actual rows.
+        """
+        try:
+            g = Graph.load(self.cfg.objects_csv(), self.cfg.edges_csv(),
+                           self.cfg.pipeline_types, self.cfg.table_types)
+            ddl = self.ddl_index()
+        except Exception:
+            return {}
+        out: Dict[str, List[dict]] = {}
+        for k, o in g.objects.items():
+            if o.get("type") != "CONFIG_TABLE":
+                continue
+            name = o.get("name", k)
+            cols = ddl.get(name, []) or ddl.get(name.lower(), [])
+            out[name] = [{c: "" for c in cols}] if cols else []
+        return out
+
     # convenience: run collect+parse and persist
     def build_graph(self) -> Graph:
         self.collect()

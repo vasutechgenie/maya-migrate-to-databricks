@@ -5,6 +5,41 @@ parallel, self-validates through both MAYA phases, and only escalates to a human
 rare unresolved parity issue. See [core/orchestration.py](../core/orchestration.py) and
 [templates/agent_prompt.md](../templates/agent_prompt.md).
 
+## The agent driver (offline | cursor)
+
+MAYA prepares deterministic work (contracts, prompts, parity plans); a swarm behind an
+`AgentDriver` does the three things MAYA cannot do deterministically -
+`build(ctx)`, `fix(ctx, spec, parity_report, original_code)`, and `convert_bi(obj)`. See
+[core/agents/](../core/agents). Two backends ship:
+
+| Backend | When | How |
+|---|---|---|
+| `OfflineAgentDriver` | demo / CI (default) | authors specs deterministically from the source logic + Stage-1 context pack; no LLM, no network |
+| `CursorAgentDriver` | real migrations | drives local LLM coding agents via the Cursor SDK (`cursor_sdk` + `CURSOR_API_KEY`), which write `authored/<pipeline>.json` in the repo |
+
+Select with `agents.driver` in the project YAML. `agents.concurrency` bounds intra-wave
+parallelism; `agents.max_fix_iters` bounds the drift loop.
+
+## Stage 4 - swarm build + strict certification
+
+`orchestration.build_swarm(cfg)` (Stage 4b) executes wave by wave with intra-wave
+parallelism (a bounded `ThreadPoolExecutor`). Per pipeline it: `driver.build` -> write
+`authored/<pipeline>.json` -> validate the spec -> run **MAYA-Dev** parity on the Stage-2
+synthetic dev catalog -> on red, `driver.fix` compares the authored code against the
+original source and retries until green or `max_fix_iters`. The next wave starts only
+after the current wave is authored + dev-green.
+
+`orchestration.certify_swarm(cfg)` (Stage 4c) then certifies **in topological order**: a
+pipeline may certify only after all its predecessors are CERTIFIED (independent pipelines
+proceed in parallel). Each runs **MAYA-SIT** (all ten checks) on prod-quality data with
+the same fix-vs-original loop, then soak windows drive final certification. Results are
+written to `out/gates.json` as `{pipeline -> maya_gate() result}`.
+
+```bash
+maya build   --config project.yaml   # Stage 4: conformance -> build (dev) -> certify
+maya certify --config project.yaml --gates out/gates.json   # roll gates into system state
+```
+
 ## Pooled work-queue within a wave
 Within a wave, pipelines are independent, so a pool of 15-20 agents draws from a common
 queue. Pod size is a dynamic split of the pool that responds to wave width.

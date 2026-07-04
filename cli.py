@@ -35,6 +35,13 @@ from core import reports as reports_mod
 from core import maya as maya_mod
 from core import validation as val
 from core import bi as bi_mod
+from core import score as score_mod
+from core import replicate as replicate_mod
+from core import pipeline_spec as spec_mod
+from core import conformance as conformance_mod
+from core import docs as docs_mod
+from core import publish as publish_mod
+from core import stages as stages_mod
 
 
 def _cfg(args) -> AcceleratorConfig:
@@ -216,8 +223,129 @@ def cmd_maya(args):
           f"{sql_out}, {man_out}")
 
 
+def cmd_score(args):
+    cfg = _cfg(args)
+    g = score_mod.run(cfg)
+    print(f"score (Stage 1): {'PASS' if g['passed'] else 'FAIL'}")
+    print(f"  pipelines at 100%: {g['pipelines_at_100']}/{g['pipelines_scored']}")
+    print(f"  tables+views: {g['tables_views']} ({g['views']} views), "
+          f"unidentified: {len(g['unidentified'])}")
+    print(f"  external systems (call-as-is): {', '.join(g['external_systems']) or '-'}")
+    print(f"  order verify: {'PASS' if g['verify_passed'] else 'FAIL'}")
+    if g["unidentified"]:
+        print(f"  unidentified: {', '.join(g['unidentified'][:12])}")
+    sys.exit(0 if g["passed"] else 1)
+
+
+def cmd_replicate(args):
+    cfg = _cfg(args)
+    g = replicate_mod.run(cfg)
+    print(f"replicate (Stage 2): {'PASS' if g['passed'] else 'FAIL'}")
+    print(f"  {g['replicated']}/{g['tables'] + g['views']} objects into "
+          f"catalog {g['test_catalog']} ({g['fill_mode']} fill) -> "
+          f"{cfg.out('stage2_replicate.sql')}")
+    sys.exit(0 if g["passed"] else 1)
+
+
+def cmd_specs(args):
+    cfg = _cfg(args)
+    g = spec_mod.run(cfg)
+    if not g.get("passed"):
+        print(f"specs (Stage 3): FAIL ({g.get('error', '')})")
+        sys.exit(1)
+    print(f"specs (Stage 3): PASS - {g['pdfs']} PDFs + {g['omnibus_pages']}-page "
+          f"omnibus -> {g['dir']}")
+
+
+def cmd_build(args):
+    cfg = _cfg(args)
+    conf = conformance_mod.run(cfg)
+    print(f"conformance (Stage 4a): {'PASS' if conf['passed'] else 'FAIL'} "
+          f"({conf['conforming']}/{conf['pipelines']} conform)")
+    if not conf["passed"]:
+        print(f"  nonconforming: {', '.join(conf['nonconforming'][:12])}")
+        sys.exit(1)
+    b = orch.build_swarm(cfg)
+    print(f"swarm build (Stage 4b): {'PASS' if b['passed'] else 'FAIL'} "
+          f"({b['dev_green']}/{b['pipelines']} dev-green across {b['waves']} waves)")
+    if not b["passed"]:
+        print(f"  not green: {', '.join(b['not_green'][:12])}")
+        sys.exit(1)
+    c = orch.certify_swarm(cfg)
+    print(f"certification (Stage 4c): {'PASS' if c['passed'] else 'FAIL'} "
+          f"({c['certified']}/{c['pipelines']} certified) -> {cfg.out('gates.json')}")
+    if not c["passed"]:
+        print(f"  not certified: {', '.join(c['not_certified'][:12])}")
+    sys.exit(0 if c["passed"] else 1)
+
+
+def cmd_docs(args):
+    cfg = _cfg(args)
+    g = docs_mod.run(cfg)
+    print(f"docs (Stage 6): {'PASS' if g['passed'] else 'FAIL'} - "
+          f"{g['pipelines']} pipelines, {g['tables']} tables, {g['views']} views, "
+          f"{g['bi']} BI -> {g['root']}")
+    sys.exit(0 if g["passed"] else 1)
+
+
+def cmd_publish(args):
+    cfg = _cfg(args)
+    g = publish_mod.run(cfg, message=args.message or "")
+    if not g.get("passed"):
+        print(f"publish: FAIL ({g.get('error', '')})")
+        sys.exit(1)
+    print(f"publish (Stage 6): {g['files']} doc files; committed={g['committed']} "
+          f"pushed={g['pushed']} (remote_enabled={g['remote_enabled']})")
+
+
+def cmd_run(args):
+    cfg = _cfg(args)
+    if args.stage == "all":
+        state = stages_mod.run_all(cfg)
+        for n in sorted(stages_mod.STAGES):
+            g = state["stages"].get(str(n))
+            if g is None:
+                print(f"  stage {n}: (not reached)")
+                continue
+            print(f"  stage {n} [{g.get('name','')}]: "
+                  f"{'PASS' if g.get('passed') else 'FAIL'}")
+        print(f"run: last_passed={state.get('last_passed', 0)}/{max(stages_mod.STAGES)}"
+              f"  complete={state.get('complete', False)}")
+        sys.exit(0 if state.get("complete") else 1)
+    n = int(args.stage)
+    g = stages_mod.run_stage(cfg, n)
+    print(f"run stage {n} [{g.get('name','')}]: "
+          f"{'PASS' if g.get('passed') else 'FAIL'}")
+    if g.get("error"):
+        print(f"  {g['error']}")
+    sys.exit(0 if g.get("passed") else 1)
+
+
 def cmd_bi(args):
     cfg = _cfg(args)
+    if args.bi_cmd == "run":
+        g = bi_mod.run(cfg)
+        print(f"bi run (Stage 5): {'PASS' if g['passed'] else 'FAIL'} - "
+              f"{g['done']}/{g['objects']} objects DONE "
+              f"(gold-gated={g['gold_gated']})")
+        if g["not_done"]:
+            print(f"  not done: {', '.join(g['not_done'][:12])}")
+        sys.exit(0 if g["passed"] else 1)
+    if args.bi_cmd == "republish":
+        objs = bi_mod.load_objects(cfg)
+        conn = cfg.load_bi_connector()
+        conn.connect()
+        ready = [o for o in objs if o.converted_query]
+        res = conn.redeploy(ready) if ready else {}
+        for oid, ok in res.items():
+            rec_path = os.path.join(cfg.out("bi_authored"),
+                                    f"{bi_mod._safe(oid)}.json")
+            rec = json.load(open(rec_path)) if os.path.exists(rec_path) else {}
+            rec["republished"] = bool(ok)
+            bi_mod.write_authored(cfg, oid, rec)
+        print(f"bi republish: {sum(1 for v in res.values() if v)}/{len(res)} "
+              f"dashboards redeployed ({conn.name})")
+        return
     if args.bi_cmd == "extract":
         conn = cfg.load_bi_connector()
         conn.connect()
@@ -321,10 +449,43 @@ def build_parser():
     m.set_defaults(func=cmd_maya)
 
     b = sub.add_parser("bi", help="BI layer migration (dashboards + Genie AI/BI)")
-    b.add_argument("bi_cmd", choices=["extract", "parity", "genie", "status"])
+    b.add_argument("bi_cmd",
+                   choices=["extract", "parity", "genie", "status", "run", "republish"])
     add_common(b)
     b.add_argument("--pipeline", help="filter to one dashboard name")
     b.set_defaults(func=cmd_bi)
+
+    # ---- six-stage commands (additive; existing verbs stay as primitives) ----
+    sc = sub.add_parser("score", help="Stage 1: traversability + identification score")
+    add_common(sc)
+    sc.set_defaults(func=cmd_score)
+
+    rp = sub.add_parser("replicate", help="Stage 2: replicate estate into test catalog")
+    add_common(rp)
+    rp.set_defaults(func=cmd_replicate)
+
+    sp = sub.add_parser("specs", help="Stage 3: one branded spec PDF per pipeline")
+    add_common(sp)
+    sp.set_defaults(func=cmd_specs)
+
+    bd = sub.add_parser("build", help="Stage 4: conformance + swarm build + certify")
+    add_common(bd)
+    bd.set_defaults(func=cmd_build)
+
+    dc = sub.add_parser("docs", help="Stage 6: generate full migration docs")
+    add_common(dc)
+    dc.set_defaults(func=cmd_docs)
+
+    pub = sub.add_parser("publish", help="Stage 6: commit generated docs back to repo")
+    add_common(pub)
+    pub.add_argument("--message", help="commit message")
+    pub.set_defaults(func=cmd_publish)
+
+    rn = sub.add_parser("run", help="run a stage (1..6) or the whole flow (all)")
+    add_common(rn)
+    rn.add_argument("--stage", default="all",
+                    help="stage number 1..6, or 'all' (default)")
+    rn.set_defaults(func=cmd_run)
     return p
 
 

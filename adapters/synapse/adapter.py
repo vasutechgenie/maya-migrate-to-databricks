@@ -69,7 +69,12 @@ class SynapseAdapter(SourceAdapter):
 
     # ---- 3. ddl index ------------------------------------------------------
     def ddl_index(self) -> Dict[str, List[str]]:
-        """Walk artifacts/DW/<db>/<schema>/{Tables,Views}/<name>.sql -> columns."""
+        """Walk artifacts/DW/<db>/<schema>/{Tables,Views}/<name>.sql -> columns.
+
+        Tables parse from CREATE TABLE (...); views (first-class) parse their projected
+        column list from CREATE VIEW ... AS SELECT ..., so view outputs are identified
+        with the same fidelity as tables.
+        """
         root = os.path.join(self._artifacts_dir(), "DW")
         index: Dict[str, List[str]] = {}
         if not os.path.isdir(root):
@@ -85,10 +90,42 @@ class SynapseAdapter(SourceAdapter):
                         if not fn.lower().endswith(".sql"):
                             continue
                         short = fn[:-4].lower()
-                        cols = _cols_from_ddl(os.path.join(d, fn))
+                        path = os.path.join(d, fn)
+                        cols = (_cols_from_view(path) if sub == "Views"
+                                else _cols_from_ddl(path))
                         if cols:
                             index[f"{schema}.{short}"] = cols
         return index
+
+    # ---- 6. Stage-1 asset exports -----------------------------------------
+    def export_schedules(self) -> List[dict]:
+        """Automic (or any scheduler) triggers that invoke pipelines.
+
+        Fast-path: reuse an exported schedules.csv from the discovery dir if present;
+        else derive one trigger per pipeline from its job_class in the graph.
+        """
+        src = os.path.join(self._source_dir(), "schedules.csv")
+        if os.path.exists(src):
+            with open(src, newline="") as f:
+                return list(csv.DictReader(f))
+        return super().export_schedules()
+
+    def export_configs(self) -> Dict[str, List[dict]]:
+        """Control/config DB tables as CSV rows.
+
+        Fast-path: reuse exported CSVs under <source_dir>/configs/<table>.csv if present;
+        else emit a deterministic header row per CONFIG_TABLE from its DDL columns.
+        """
+        cdir = os.path.join(self._source_dir(), "configs")
+        if os.path.isdir(cdir):
+            out: Dict[str, List[dict]] = {}
+            for fn in os.listdir(cdir):
+                if fn.lower().endswith(".csv"):
+                    with open(os.path.join(cdir, fn), newline="") as f:
+                        out[fn[:-4]] = list(csv.DictReader(f))
+            if out:
+                return out
+        return super().export_configs()
 
     # ---- 4. connections ----------------------------------------------------
     def connections(self) -> List[dict]:
@@ -119,6 +156,54 @@ class SynapseAdapter(SourceAdapter):
             s = re.sub(r"\bTOP\s+\d+\b", "", s, flags=re.I).rstrip()
             s = s + f"\n-- LIMIT {m.group(1)}  (verify placement)"
         return s
+
+
+def _cols_from_view(path: str) -> List[str]:
+    """Projected column names from a CREATE VIEW ... AS SELECT ... FROM ... .
+
+    Best-effort: parse the top-level SELECT list (before FROM), taking each item's alias
+    (after AS / trailing identifier) or the bare/qualified column name. Good enough to
+    identify a view's output columns for scoring and docs; the agent verifies at build.
+    """
+    try:
+        txt = open(path, errors="ignore").read()
+    except Exception:
+        return []
+    up = txt.upper()
+    si = up.find("SELECT")
+    if si < 0:
+        return []
+    fi = up.find("FROM", si)
+    seg = txt[si + 6: fi if fi > si else len(txt)]
+    cols: List[str] = []
+    depth = 0
+    cur = ""
+    parts: List[str] = []
+    for ch in seg:
+        if ch in "(":
+            depth += 1
+        elif ch in ")":
+            depth -= 1
+        if ch == "," and depth == 0:
+            parts.append(cur)
+            cur = ""
+            continue
+        cur += ch
+    if cur.strip():
+        parts.append(cur)
+    for p in parts:
+        p = p.strip().replace("[", "").replace("]", "")
+        if not p or p == "*":
+            continue
+        m = re.search(r"\bAS\s+([A-Za-z0-9_]+)\s*$", p, flags=re.I)
+        if m:
+            name = m.group(1)
+        else:
+            tok = p.split()[-1]
+            name = tok.split(".")[-1]
+        if name and name not in cols:
+            cols.append(name)
+    return cols
 
 
 def _subdirs(path: str) -> List[str]:

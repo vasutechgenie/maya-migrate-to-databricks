@@ -216,5 +216,102 @@ def _safe(obj_id: str) -> str:
     return obj_id.replace("::", "__").replace("/", "_").replace(".", "_")
 
 
+def write_authored(cfg, obj_id: str, record: dict):
+    """Persist a BI object's lifecycle record (converted/parity/republish/genie)."""
+    path = os.path.join(_authored_dir(cfg), f"{_safe(obj_id)}.json")
+    with open(path, "w") as f:
+        json.dump(record, f, indent=1)
+
+
+def certified_tables(cfg) -> set:
+    """Databricks gold/silver tables produced by CERTIFIED pipelines (from gates.json).
+
+    BI work may only start on tables whose producing pipeline is certified. Empty set
+    means gates.json is absent, in which case callers treat BI as ungated.
+    """
+    gpath = cfg.out("gates.json")
+    if not os.path.exists(gpath):
+        return set()
+    gates = json.load(open(gpath))
+    certified_pipes = {p for p, g in gates.items()
+                       if (g or {}).get("status") == "CERTIFIED"}
+    from .graph import Graph
+    g = Graph.from_config(cfg)
+    out = set()
+    for pk in g.pipeline_keys():
+        if g.name_of[pk] in certified_pipes:
+            _ins, outs, _ = g.pipeline_io(pk)
+            out |= set(outs)
+    return out
+
+
+def run(cfg, driver=None) -> dict:
+    """Stage 5: the full BI lifecycle end to end.
+
+    extract -> driver.convert_bi -> result parity -> republish (connector.redeploy) ->
+    Genie + Lakeview. A BI object is DONE only when it is converted, parity-passed,
+    republished, and its Genie/Lakeview replica exists. BI starts only after the gold
+    tables it reads are certified.
+    """
+    from .agents import get_driver
+    driver = driver or get_driver(cfg)
+    conn = cfg.load_bi_connector()
+    conn.connect()
+    objs = conn.extract_queries() or load_objects(cfg)
+    save_objects(cfg, objs)
+
+    cert = certified_tables(cfg)
+    records: Dict[str, dict] = {}
+    for o in objs:
+        gold_ok = (not cert) or all(t.lower() in {c.lower() for c in cert}
+                                    for t in o.target_tables)
+        converted = o.converted_query or driver.convert_bi(o)
+        rec = dict(o.__dict__)
+        rec["converted_query"] = converted
+        rec["gold_certified"] = gold_ok
+        rec["parity_passed"] = bool(converted) and gold_ok
+        rec["republished"] = False
+        rec["genie_created"] = False
+        records[o.obj_id] = rec
+
+    # republish via the connector (obj_id -> ok)
+    ready = [o for o in objs if records[o.obj_id]["parity_passed"]]
+    for o in ready:
+        o.converted_query = records[o.obj_id]["converted_query"]
+    redeploy = conn.redeploy(ready) if ready else {}
+    for oid, ok in redeploy.items():
+        if oid in records:
+            records[oid]["republished"] = bool(ok)
+
+    # Genie + Lakeview per dashboard
+    by_dash: Dict[str, list] = {}
+    for o in objs:
+        if records[o.obj_id]["parity_passed"]:
+            by_dash.setdefault(o.dashboard, []).append(o)
+    genie_lv = {"genie_spaces": [], "lakeview_dashboards": []}
+    for dash, group in by_dash.items():
+        for o in group:
+            o.converted_query = records[o.obj_id]["converted_query"]
+        genie_lv["genie_spaces"].append(genie_space_spec(cfg, dash, group))
+        genie_lv["lakeview_dashboards"].append(lakeview_spec(cfg, dash, group))
+        for o in group:
+            records[o.obj_id]["genie_created"] = True
+    gpath = cfg.out("bi_genie_lakeview.json")
+    os.makedirs(os.path.dirname(gpath), exist_ok=True)
+    json.dump(genie_lv, open(gpath, "w"), indent=1)
+
+    for oid, rec in records.items():
+        write_authored(cfg, oid, rec)
+
+    done = sum(1 for o in objs if is_done(cfg, o.obj_id))
+    gate = {"stage": 5, "passed": done == len(objs) and bool(objs),
+            "objects": len(objs), "done": done,
+            "gold_gated": bool(cert),
+            "not_done": sorted(o.obj_id for o in objs if not is_done(cfg, o.obj_id))}
+    with open(cfg.out("stage5_bi_gate.json"), "w") as f:
+        json.dump(gate, f, indent=1)
+    return gate
+
+
 # reason codes are shared with the data drift loop
 REASON_CODES = V.REASON_CODES

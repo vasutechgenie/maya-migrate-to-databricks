@@ -93,27 +93,47 @@ git clone https://github.com/vasutechgenie/maya-migrate-to-databricks
 cd maya-migrate-to-databricks
 pip install -r requirements.txt        # reportlab, pypdf, PyYAML
 
-make demo     # graph -> order -> verify -> context -> orchestrate -> sample -> validate -> certify -> report -> bi
+make demo     # the six-stage flow, end to end, offline (see below)
 make test     # the deterministic goldens for the demo
 ```
-`make demo` runs the whole workflow on `examples/northwind/` (a fictional retailer moving
-to Databricks - Synapse is used as the worked source, but the flow is identical for any
-source) and writes every artifact to `examples/northwind/out/`: a normalized graph, a
-verified 5-wave build order, per-pipeline contracts (the preview), the agent work queue by
-wave, RI-preserving dev sample SQL, MAYA parity SQL for dev/sit/soak, the whole-system
-certification rollup, and a branded PDF report.
+`make demo` runs MAYA's **six gated stages** on `examples/northwind/` (a fictional
+retailer moving to Databricks - Synapse is the worked source, but the flow is identical
+for any source) with the deterministic **offline agent driver**, so it runs end to end
+with zero external calls. It writes every artifact to `examples/northwind/out/`: a
+normalized graph and verified build order, a 100% traversability score, a whole-estate
+test-catalog replication script with referential-integrity synthetic data, one spec PDF
+per pipeline, the swarm-built + topologically-certified `gates.json`, the migrated BI
+layer (Lakeview/Genie), and full generated docs.
 
-Run a single phase yourself:
+### The six stages
 ```bash
-python3 cli.py graph    --config examples/northwind/northwind.yaml   # preview: normalized graph
-python3 cli.py order    --config examples/northwind/northwind.yaml   # preview: build waves
-python3 cli.py verify   --config examples/northwind/northwind.yaml   # preview: independent order check
-python3 cli.py context  --config examples/northwind/northwind.yaml   # preview: per-pipeline contracts
-python3 cli.py report   --config examples/northwind/northwind.yaml   # preview: branded PDF
-python3 cli.py orchestrate --status --config examples/northwind/northwind.yaml   # build: agent queue by wave
-python3 cli.py maya sample --config examples/northwind/northwind.yaml --pipeline nw_build_sales   # illusion sample
-python3 cli.py validate --config examples/northwind/northwind.yaml --pipeline nw_build_marts --env soak   # MAYA parity SQL
-python3 cli.py certify  --config examples/northwind/northwind.yaml   # whole-system: migration complete?
+make demo                                          # run all six stages in order
+python3 cli.py run --stage all --config examples/northwind/northwind.yaml
+python3 cli.py run --stage 4   --config examples/northwind/northwind.yaml   # one stage
+```
+| Stage | Command | Gate |
+|---|---|---|
+| 1 collect + score | `cli.py score` | 100% traversable; all tables/views/externals identified |
+| 2 replicate | `cli.py replicate` | every table+view in the test catalog, RI-filled |
+| 3 specs | `cli.py specs` | one spec PDF per pipeline |
+| 4 build + certify | `cli.py build` | swarm builds dev-green, then CERTIFIED in topo order |
+| 5 BI | `cli.py bi run` | every dashboard converted + parity + republished + Genie |
+| 6 docs + publish | `cli.py docs` + `cli.py publish` | full docs generated + committed |
+
+The swarm behind stages 4-5 runs via `agents.driver` in the project YAML:
+`offline` (default, deterministic, no LLM - what the demo uses) or `cursor` (real LLM
+coding agents via the Cursor SDK, needs `CURSOR_API_KEY`).
+
+### Primitives (unchanged - the stages call these under the hood)
+```bash
+python3 cli.py graph    --config examples/northwind/northwind.yaml   # normalized graph
+python3 cli.py order    --config examples/northwind/northwind.yaml   # build waves
+python3 cli.py verify   --config examples/northwind/northwind.yaml   # independent order check
+python3 cli.py context  --config examples/northwind/northwind.yaml   # per-pipeline contracts
+python3 cli.py report   --config examples/northwind/northwind.yaml   # branded PDF
+python3 cli.py maya sample --config examples/northwind/northwind.yaml --pipeline nw_build_sales
+python3 cli.py validate --config examples/northwind/northwind.yaml --pipeline nw_build_marts --env soak
+python3 cli.py certify  --config examples/northwind/northwind.yaml --gates examples/northwind/out/gates.json
 ```
 
 ## The MAYA validation technique (two-phase + sustained soak)
@@ -158,7 +178,10 @@ Roughly 70-80% of a migration is the reusable core; 20-30% is the adapter. See t
 ## Repo layout
 ```
 core/               source-agnostic library (graph, order, contract, engines,
-                    validation, maya, bi, orchestration, branding, reports)
+                    validation, maya, bi, orchestration, branding, reports;
+                    six-stage: score, replicate, pipeline_spec, conformance,
+                    docs, publish, stages)
+core/agents/        AI coding-agent swarm driver (offline + Cursor SDK backends)
 adapters/           SourceAdapter ABC + reference Synapse adapter; BI connectors
 templates/          project/engine/maya/bi config, dashboard DDL, agent prompts
 examples/northwind/ the runnable synthetic demo (graph, DDL, config, BI export)
@@ -166,7 +189,7 @@ docs/               methodology, MAYA validation, execution plan, guides
 docs/tutorial/      hands-on walkthrough (01-10) using the Northwind demo
 tests/              pytest suite asserting the Northwind goldens
 blog/               "Migrating with MAYA" hands-on article series + figures
-cli.py              phase entrypoint
+cli.py              phase + six-stage entrypoint (run --stage N|all)
 ```
 
 ## Documentation

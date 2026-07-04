@@ -4,6 +4,26 @@ Each pipeline crosses a fixed sequence of gates. A pipeline is a build unit; a w
 barrier. MAYA adds the validation gates (G6-G9): G6/G7 make build-time certification
 cheap, and G9 (soak) makes it durable.
 
+## Stage gates (the six-stage flow)
+
+Above the per-pipeline gates below, MAYA runs six **stage** gates end to end. Each writes
+a gate JSON under `out/`; the orchestrator (`core/stages.py`, `maya run`) refuses to
+advance past a failed one and records progress in `out/stage_state.json`.
+
+| Stage gate | Passes when | Artifact |
+|---|---|---|
+| 1 collect + score | every pipeline 100% traversable, all tables/views identified, all externals tagged, order verifies | `stage1_gate.json`, `discovery_score.csv` |
+| 2 replicate | every table AND view present in `maya.test_catalog` (RI-preserving fill) | `stage2_gate.json`, `stage2_replicate.sql` |
+| 3 specs | one spec PDF per pipeline | `stage3_gate.json`, `specs_pdf/` |
+| 4a conformance | order+waves valid AND every spec PDF conforms to its wave | `stage4_conformance.json` |
+| 4b build | every pipeline authored + MAYA-Dev green on synthetic dev | `stage4_build.json` |
+| 4c certify | every pipeline CERTIFIED in topological order | `gates.json`, `stage4_certify.json` |
+| 5 BI | every BI object DONE (convert + parity + republish + Genie) | `stage5_bi_gate.json` |
+| 6 docs + publish | docs generated for every object + committed | `stage6_docs.json`, `stage6_publish.json` |
+
+The per-pipeline gates (G0-G9) and BI gates (B0-B4) below are what a single build unit
+crosses **inside** stages 4 and 5.
+
 ## Gates
 | Gate | Name | Passes when |
 |---|---|---|

@@ -51,6 +51,21 @@ maya:
   require_soak: true
   soak_windows_days: [7, 14]
   soak_drift_tolerance: 0.0
+  # Stage 2 - whole-estate replication into a Databricks test catalog.
+  test_catalog: nw_test
+  synthetic_rows: 10000
+  test_from_source: false        # demo generates synthetic RI data (runs offline)
+
+# The AI coding-agent swarm that builds/validates/fixes in Stages 4-5.
+# The demo uses the deterministic offline backend so it runs with zero external calls;
+# set driver: cursor (+ CURSOR_API_KEY) to drive real LLM agents via the Cursor SDK.
+agents:
+  driver: offline                # offline | cursor
+  model: composer-2.5
+  concurrency: 6
+  max_fix_iters: 5
+  publish_remote: false          # Stage 6: local commit only for the demo (no push)
+  publish_branch: main
 
 adapter_options:
   # source_dir/artifacts_dir resolve from the current working directory (run from repo root)

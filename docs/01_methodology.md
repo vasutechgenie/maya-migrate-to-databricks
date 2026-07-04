@@ -5,6 +5,50 @@ pipeline. The phases below take an estate from raw source artifacts to a
 prod-certified Databricks lakehouse, with the MAYA two-phase validation technique
 making the validation step cheap and the sustained soak making certification durable.
 
+## The six gated stages
+
+Operationally MAYA runs as **six hard-gated stages**. Each stage runs its steps,
+evaluates a gate, and the orchestrator refuses to advance past a failed gate. The stages
+wrap the phases/gates described later in this doc - they do not replace them; every
+existing verb (`graph`, `order`, `verify`, `context`, `maya sample`, `validate`,
+`certify`, `report`, `bi`) still runs directly as a primitive.
+
+```mermaid
+flowchart TB
+  s1["Stage 1 - collect + score (100% traversable; all tables/views/externals identified)"]
+  s2["Stage 2 - replicate ALL tables+views into a test catalog, fill 10k w/ RI or sample"]
+  s3["Stage 3 - one branded spec PDF per pipeline"]
+  s4["Stage 4 - conformance -> agent-swarm build (dev) -> strict topological certification"]
+  s5["Stage 5 - BI extract -> convert -> result-parity -> republish -> Lakeview/Genie"]
+  s6["Stage 6 - generate full docs (pipelines/tables/views/BI) + publish to GitHub"]
+  s1 -->|gate PASS| s2 --> s3 --> s4 -->|all CERTIFIED| s5 --> s6
+```
+
+| Stage | Command | Gate |
+|---|---|---|
+| 1 collect + score | `maya score` (after `graph`/`order`/`context`) | every pipeline 100% traversable, every table/view identified, every external tagged call-as-is, order verifies |
+| 2 replicate | `maya replicate` | every table AND view replicated into `maya.test_catalog` (synthetic 10k w/ referential integrity, or sample-from-source) |
+| 3 specs | `maya specs` | exactly one spec PDF per pipeline (+ omnibus) |
+| 4 build + certify | `maya build` | order+specs conform; swarm builds dev-green; every pipeline CERTIFIED in topological order |
+| 5 BI | `maya bi run` | every BI object converted + result-parity + republished + Genie/Lakeview (DONE) |
+| 6 docs + publish | `maya docs` + `maya publish` | docs generated for every object; committed back to the repo |
+
+Run one stage with `maya run --stage N`, or the whole flow with `maya run --stage all`
+(this is what `make demo` does). State is written to `out/stage_state.json`.
+
+### MAYA drives the agent swarm (offline or Cursor)
+
+The build/validate/fix work in Stage 4-5 is done by a swarm of AI coding agents behind an
+`AgentDriver` (see [09_agent_orchestration.md](09_agent_orchestration.md)):
+
+- `agents.driver: offline` (default) - a deterministic, no-LLM backend that authors specs
+  straight from the source logic + the Stage-1 context pack. This makes the bundled
+  **Northwind demo run end to end offline** with zero external calls, and keeps CI green.
+- `agents.driver: cursor` - drives real LLM coding agents via the Cursor SDK
+  (`cursor_sdk`, needs `CURSOR_API_KEY`), running local agents against the repo.
+
+The rest of MAYA (queueing, parity, gating, certification, docs) is deterministic core.
+
 ```mermaid
 flowchart TD
   p0["Phase 0: prereqs (workspaces, connections proven, MAYA dev sample, SIT prod copy)"]
