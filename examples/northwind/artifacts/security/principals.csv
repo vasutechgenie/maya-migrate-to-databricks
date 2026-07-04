@@ -1,0 +1,8 @@
+principal,type,member_of,source_role,description
+nw_engineers,group,,db_datawriter,Data engineering team (builds and operates pipelines)
+nw_analysts,group,,db_datareader,BI analysts (read gold + serving marts)
+nw_stewards,group,,db_owner,Data stewards / governance owners
+nw_ops,group,,db_operator,Platform operations / on-call
+sp_etl,service_principal,,etl_service,ETL service principal that runs all pipelines
+alice@northwind.example,user,nw_engineers,,Data engineer
+bob@northwind.example,user,nw_analysts,,BI analyst

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "maya-migrate"
-version = "0.1.0"
+version = "0.2.0"
 description = "MAYA - a deterministic, source-agnostic accelerator for migrating data platforms (e.g. Synapse -> Databricks) with two-phase + sustained-soak parity validation."
 readme = "README.md"
 requires-python = ">=3.9"

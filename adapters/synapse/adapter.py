@@ -127,6 +127,43 @@ class SynapseAdapter(SourceAdapter):
                 return out
         return super().export_configs()
 
+    # ---- 7. Stage-0 identity/security exports -----------------------------
+    def _security_dir(self) -> str:
+        return os.path.join(self._artifacts_dir(), "security")
+
+    def _read_csv(self, name: str):
+        path = os.path.join(self._security_dir(), name)
+        if os.path.exists(path):
+            with open(path, newline="") as f:
+                return list(csv.DictReader(f))
+        return None
+
+    def export_principals(self) -> List[dict]:
+        rows = self._read_csv("principals.csv")
+        return rows if rows is not None else super().export_principals()
+
+    def export_grants(self) -> List[dict]:
+        rows = self._read_csv("grants.csv")
+        return rows if rows is not None else super().export_grants()
+
+    def export_secrets(self) -> List[dict]:
+        rows = self._read_csv("secrets.csv")
+        return rows if rows is not None else super().export_secrets()
+
+    def classify_data(self) -> List[dict]:
+        rows = self._read_csv("classification.csv")
+        return rows if rows is not None else super().classify_data()
+
+    def export_security_facts(self) -> Dict[str, object]:
+        import json as _json
+        path = os.path.join(self._security_dir(), "security_facts.json")
+        if os.path.exists(path):
+            try:
+                return _json.load(open(path))
+            except Exception:
+                pass
+        return super().export_security_facts()
+
     # ---- 4. connections ----------------------------------------------------
     def connections(self) -> List[dict]:
         path = self.cfg.out("connections.csv")

@@ -136,6 +136,14 @@ class AcceleratorConfig:
     # free-form adapter-specific settings
     adapter_options: Dict[str, Any] = field(default_factory=dict)
 
+    # ---- full-lifecycle stages (0, 7, 8) settings (free-form) --------------
+    # Stage 0/7: identity, access, secrets, classification, governance.
+    security: Dict[str, Any] = field(default_factory=dict)
+    governance: Dict[str, Any] = field(default_factory=dict)
+    # Stage 8: enablement/training + day-2 operations.
+    enablement: Dict[str, Any] = field(default_factory=dict)
+    ops: Dict[str, Any] = field(default_factory=dict)
+
     # ---- path helpers ------------------------------------------------------
     base_dir: str = "."
 

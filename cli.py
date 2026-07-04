@@ -41,6 +41,9 @@ from core import pipeline_spec as spec_mod
 from core import conformance as conformance_mod
 from core import docs as docs_mod
 from core import publish as publish_mod
+from core import readiness as readiness_mod
+from core import identity as identity_mod
+from core import enablement as enablement_mod
 from core import stages as stages_mod
 
 
@@ -221,6 +224,46 @@ def cmd_maya(args):
             w.writerows(all_manifest)
     print(f"maya sample: {len(all_manifest)} tables across {len(pipes)} pipeline(s) -> "
           f"{sql_out}, {man_out}")
+
+
+def cmd_readiness(args):
+    cfg = _cfg(args)
+    g = readiness_mod.run(cfg)
+    print(f"readiness (Stage 0): {'PASS' if g['passed'] else 'FAIL'}")
+    print(f"  principals: {g['principals']} ({g['groups']} groups, "
+          f"{g['service_principals']} SP, {g['users']} users), grants: {g['grants']}")
+    print(f"  secrets: {g['secrets']}, classified columns: {g['classified_columns']} "
+          f"({g['pii_columns']} PII)")
+    for k in ("unknown_principals", "unresolved_grants", "bad_secret_connections",
+              "unsecured_connections", "unmasked_pii"):
+        if g.get(k):
+            print(f"  {k}: {', '.join(g[k][:12])}")
+    sys.exit(0 if g["passed"] else 1)
+
+
+def cmd_identity(args):
+    cfg = _cfg(args)
+    g = identity_mod.run(cfg)
+    print(f"identity (Stage 7): {'PASS' if g['passed'] else 'FAIL'}")
+    print(f"  grants mapped: {g['grants_mapped']}/{g['grants_total']}, "
+          f"masked columns: {g['masked_columns']}, row filters: {g['row_filters']}")
+    print(f"  secret scope: {g['secret_scope']} ({g['secrets']} secrets) -> {g['sql']}")
+    if g.get("unmasked_pii"):
+        print(f"  unmasked PII: {', '.join(g['unmasked_pii'][:12])}")
+    if g.get("unsecured_connections"):
+        print(f"  unsecured connections: {', '.join(g['unsecured_connections'][:12])}")
+    sys.exit(0 if g["passed"] else 1)
+
+
+def cmd_enablement(args):
+    cfg = _cfg(args)
+    g = enablement_mod.run(cfg)
+    print(f"enablement (Stage 8): {'PASS' if g['passed'] else 'FAIL'}")
+    print(f"  training packs: {g['training_packs']}, runbooks: {g['runbooks']}, "
+          f"monitors: {g['monitors']}, alerts: {g['alerts']}")
+    for c in g.get("go_no_go", []):
+        print(f"  [{'x' if c['ok'] else ' '}] {c['item']}")
+    sys.exit(0 if g["passed"] else 1)
 
 
 def cmd_score(args):
@@ -455,7 +498,12 @@ def build_parser():
     b.add_argument("--pipeline", help="filter to one dashboard name")
     b.set_defaults(func=cmd_bi)
 
-    # ---- six-stage commands (additive; existing verbs stay as primitives) ----
+    # ---- full-lifecycle stage commands (additive; verbs stay as primitives) ----
+    rd = sub.add_parser("readiness",
+                        help="Stage 0: collect + classify identity/security/governance")
+    add_common(rd)
+    rd.set_defaults(func=cmd_readiness)
+
     sc = sub.add_parser("score", help="Stage 1: traversability + identification score")
     add_common(sc)
     sc.set_defaults(func=cmd_score)
@@ -481,10 +529,20 @@ def build_parser():
     pub.add_argument("--message", help="commit message")
     pub.set_defaults(func=cmd_publish)
 
-    rn = sub.add_parser("run", help="run a stage (1..6) or the whole flow (all)")
+    idn = sub.add_parser("identity",
+                         help="Stage 7: UC groups/grants + masks + secrets + governance")
+    add_common(idn)
+    idn.set_defaults(func=cmd_identity)
+
+    en = sub.add_parser("enablement",
+                        help="Stage 8: training + runbooks + cutover/rollback + day-2 ops")
+    add_common(en)
+    en.set_defaults(func=cmd_enablement)
+
+    rn = sub.add_parser("run", help="run a stage (0..8) or the whole flow (all)")
     add_common(rn)
     rn.add_argument("--stage", default="all",
-                    help="stage number 1..6, or 'all' (default)")
+                    help="stage number 0..8, or 'all' (default)")
     rn.set_defaults(func=cmd_run)
     return p
 

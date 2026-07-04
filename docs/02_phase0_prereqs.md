@@ -37,3 +37,12 @@ is short. Nothing in Phase 0 is owned by the build agents; it is platform + data
 
 Only when connections are green and both data tiers exist does the autonomous build
 begin.
+
+## Beyond the data estate
+Phase 0 above is *platform* setup. The **non-data** estate - identity, access, secrets,
+data classification, and governance - is collected and gated separately in **Stage 0**
+([00_readiness.md](00_readiness.md)), applied to Unity Catalog in **Stage 7**
+([14_identity_security_governance.md](14_identity_security_governance.md)), and finished
+with enablement, cutover/rollback, and day-2 operations in **Stage 8**
+([15_enablement_training.md](15_enablement_training.md),
+[16_cutover_rollback_operations.md](16_cutover_rollback_operations.md)).

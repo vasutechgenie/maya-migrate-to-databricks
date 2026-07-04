@@ -1,7 +1,7 @@
-"""End-to-end six-stage flow on Northwind with the deterministic offline driver.
+"""End-to-end nine-stage full-lifecycle flow on Northwind with the offline driver.
 
 Proves each stage's gate passes, and that the whole flow reaches a certified,
-documented, complete migration with zero external calls.
+documented, secured, and enabled complete migration with zero external calls.
 """
 import json
 import os
@@ -10,8 +10,8 @@ import os
 def test_all_stages_pass(staged):
     _cfg, state = staged
     assert state["complete"] is True
-    assert state["last_passed"] == 6
-    for n in range(1, 7):
+    assert state["last_passed"] == 8
+    for n in range(0, 9):
         assert state["stages"][str(n)]["passed"], f"stage {n} failed"
 
 
@@ -20,6 +20,73 @@ def test_stage_state_written(staged):
     assert os.path.exists(cfg.out("stage_state.json"))
     st = json.load(open(cfg.out("stage_state.json")))
     assert st["stages"]["4"]["system"]["status"] == "MIGRATION_COMPLETE"
+
+
+def test_stage0_readiness_gate(staged):
+    cfg, _ = staged
+    gate = json.load(open(cfg.out("stage0_gate.json")))
+    assert gate["passed"] is True
+    assert gate["principals"] == 7 and gate["groups"] == 4
+    assert gate["service_principals"] == 1 and gate["users"] == 2
+    assert gate["grants"] == 17 and gate["secrets"] == 4
+    assert gate["pii_columns"] == 2
+    for k in ("unknown_principals", "unresolved_grants", "bad_secret_connections",
+              "unsecured_connections", "unmasked_pii"):
+        assert gate[k] == [], f"{k} not empty"
+
+
+def test_stage0_artifacts_collected(staged):
+    cfg, _ = staged
+    import csv
+    d = cfg.out("readiness")
+    for name in ("principals.csv", "grants.csv", "secrets.csv", "classification.csv"):
+        assert os.path.exists(os.path.join(d, name)), name
+    assert os.path.exists(os.path.join(d, "security_facts.json"))
+    principals = list(csv.DictReader(open(os.path.join(d, "principals.csv"))))
+    assert any(p["type"] == "service_principal" for p in principals)
+
+
+def test_stage0_gate_fails_on_unknown_principal(tmp_path):
+    """A grant to a principal that does not exist -> Stage-0 gate FAILS."""
+    import conftest
+    from core import readiness
+    broken = conftest._load_cfg(tmp_path / "broken0")
+    collected = readiness.collect(broken)
+    collected["grants"] = collected["grants"] + [
+        {"principal": "ghost_group", "object": "src", "privilege": "SELECT"}]
+    gate = readiness.compute(broken, collected)
+    assert gate["passed"] is False
+    assert "ghost_group" in gate["unknown_principals"]
+
+
+def test_stage7_identity_access_parity(staged):
+    cfg, _ = staged
+    gate = json.load(open(cfg.out("stage7_gate.json")))
+    assert gate["passed"] is True
+    assert gate["grants_mapped"] == gate["grants_total"] == 17
+    assert gate["masked_columns"] == 2 and gate["row_filters"] == 1
+    assert gate["secrets"] == 4 and gate["secret_scope"] == "nw_secrets"
+    assert gate["unmasked_pii"] == [] and gate["unsecured_connections"] == []
+    sql = open(cfg.out("stage7_identity.sql")).read()
+    assert "GRANT ALL PRIVILEGES ON SCHEMA nw_sit.src TO `nw_engineers`;" in sql
+    assert "SET MASK nw_sit.masks.mask_name" in sql
+    assert "SET ROW FILTER" in sql
+    assert "ALTER SCHEMA nw_sit.rdm SET TAGS ('layer' = 'gold');" in sql
+
+
+def test_stage8_enablement_go_no_go(staged):
+    cfg, _ = staged
+    gate = json.load(open(cfg.out("stage8_gate.json")))
+    assert gate["passed"] is True
+    assert gate["training_packs"] == 4 and gate["runbooks"] == 3
+    assert gate["monitors"] == 5 and gate["alerts"] == 3
+    assert all(c["ok"] for c in gate["go_no_go"])
+    d = gate["dir"]
+    for f in ("cutover_plan.md", "rollback_plan.md", "decommission_checklist.md",
+              "operations.json"):
+        assert os.path.exists(os.path.join(d, f)), f
+    for aud in ("engineer", "analyst", "steward", "ops"):
+        assert os.path.exists(os.path.join(d, "training", f"{aud}.md"))
 
 
 def test_stage1_score_gate_100(staged):

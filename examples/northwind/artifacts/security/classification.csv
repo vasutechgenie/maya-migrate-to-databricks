@@ -1,0 +1,3 @@
+table,column,classification,mask
+src.customers,customer_name,PII,name
+sales.dim_customer,customer_name,PII,name

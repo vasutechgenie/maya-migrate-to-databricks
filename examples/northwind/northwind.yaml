@@ -67,6 +67,48 @@ agents:
   publish_remote: false          # Stage 6: local commit only for the demo (no push)
   publish_branch: main
 
+# Stage 0 + 7 - identity, access, secrets, classification, governance.
+# The source estate (principals, grants, secrets, classification) is exported by the
+# adapter from examples/northwind/artifacts/security/*; these settings drive how it is
+# translated into Unity Catalog at cutover.
+security:
+  target_catalog: nw_sit          # UC catalog the grants/masks are authored against
+  secret_scope: nw_secrets        # Databricks secret scope for migrated credentials
+  row_filters:                    # row-level security policies to apply
+    - table: sales.dim_customer
+      column: region
+      group: nw_analysts
+
+governance:
+  owners:                         # schema -> owning group
+    src: nw_engineers
+    sales: nw_engineers
+    rdm: nw_stewards
+    serving: nw_stewards
+    metadata: nw_ops
+  tags:                           # schema -> medallion tag
+    src: bronze
+    sales: silver
+    rdm: gold
+    serving: serving
+  glossary:
+    Customer 360: Unified per-customer view across sales and web behavior
+    Gold mart: Curated, business-ready aggregate table
+
+# Stage 8 - enablement + day-2 operations. (audiences omitted -> sensible defaults:
+# engineer / analyst / steward / ops.)
+enablement: {}
+
+ops:
+  monitors: [job_success_rate, pipeline_latency, maya_parity_drift, freshness_sla,
+             row_count_delta]
+  alerts:
+    - {name: job_failure, channel: pagerduty, severity: sev1}
+    - {name: parity_drift, channel: slack, severity: sev2}
+    - {name: freshness_breach, channel: slack, severity: sev2}
+  cost_budget: {monthly_usd: 5000, alert_at_pct: 80}
+  dr: {rpo_hours: 24, rto_hours: 4, backup: "Delta deep clone to a secondary region, daily"}
+
 adapter_options:
   # source_dir/artifacts_dir resolve from the current working directory (run from repo root)
   source_dir: examples/northwind

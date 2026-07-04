@@ -1,19 +1,23 @@
 """
-stages.py -- the six-stage MAYA orchestrator.
+stages.py -- the nine-stage MAYA full-lifecycle orchestrator.
 
 Wraps the existing deterministic primitives (graph, order, verify, context, maya, bi,
-report) and the new stage capabilities into six hard-gated stages. Each stage runs its
-steps, evaluates its gate, and the orchestrator refuses to advance past a failed gate.
-State is written to out/stage_state.json.
+report) and the stage capabilities into hard-gated stages. Each stage runs its steps,
+evaluates its gate, and the orchestrator refuses to advance past a failed gate. State is
+written to out/stage_state.json.
 
+  0  readiness           collect + classify identity/access/secrets/classification (non-data estate)
   1  collect + score      graph -> order -> context -> collect assets -> 100% score gate
   2  replicate            whole-estate test-catalog replication + RI fill
   3  specs                one branded spec PDF per pipeline
   4  build + certify      conformance -> swarm build (dev) -> strict topo certification
   5  bi                   extract -> convert -> parity -> republish -> Genie/Lakeview
   6  docs + publish        generate docs -> commit back (local for the offline demo)
+  7  identity             UC groups/roles/grants + RLS/CLS masks + secrets + governance (access parity)
+  8  enablement           training + runbooks + cutover/rollback/decommission + day-2 ops (go/no-go)
 
-Nothing here overwrites the existing verbs; they remain usable directly as primitives.
+Stages 1-6 are unchanged; 0/7/8 are additive. Nothing here overwrites the existing verbs;
+they remain usable directly as primitives.
 """
 from __future__ import annotations
 
@@ -32,6 +36,13 @@ from . import bi as bi_mod
 from . import docs as docs_mod
 from . import publish as publish_mod
 from . import validation as val
+from . import readiness as readiness_mod
+from . import identity as identity_mod
+from . import enablement as enablement_mod
+
+
+def _stage0(cfg) -> dict:
+    return readiness_mod.run(cfg)
 
 
 def _stage1(cfg) -> dict:
@@ -82,13 +93,24 @@ def _stage6(cfg) -> dict:
             "docs": d, "publish": p}
 
 
+def _stage7(cfg) -> dict:
+    return identity_mod.run(cfg)
+
+
+def _stage8(cfg) -> dict:
+    return enablement_mod.run(cfg)
+
+
 STAGES: Dict[int, tuple] = {
+    0: ("readiness", _stage0),
     1: ("collect+score", _stage1),
     2: ("replicate", _stage2),
     3: ("specs", _stage3),
     4: ("conformance+build+certify", _stage4),
     5: ("bi", _stage5),
     6: ("docs+publish", _stage6),
+    7: ("identity+security+governance", _stage7),
+    8: ("enablement+go-live", _stage8),
 }
 
 
@@ -103,7 +125,7 @@ def _load_state(cfg) -> dict:
             return json.load(open(p))
         except Exception:
             pass
-    return {"stages": {}, "last_passed": 0}
+    return {"stages": {}, "last_passed": -1}
 
 
 def _save_state(cfg, state: dict):
@@ -113,28 +135,29 @@ def _save_state(cfg, state: dict):
 
 
 def run_stage(cfg, n: int, enforce_prev: bool = True) -> dict:
-    """Run one stage. If enforce_prev, refuse unless stages 1..n-1 have passed."""
+    """Run one stage. If enforce_prev, refuse unless stages before n have passed."""
     if n not in STAGES:
-        raise ValueError(f"unknown stage {n} (expected 1..6)")
+        lo, hi = min(STAGES), max(STAGES)
+        raise ValueError(f"unknown stage {n} (expected {lo}..{hi})")
     state = _load_state(cfg)
-    if enforce_prev and n > 1 and state.get("last_passed", 0) < n - 1:
+    if enforce_prev and n > min(STAGES) and state.get("last_passed", -1) < n - 1:
         return {"stage": n, "passed": False,
                 "error": f"gate not satisfied: stage {n-1} has not passed "
-                         f"(last_passed={state.get('last_passed', 0)})"}
+                         f"(last_passed={state.get('last_passed', -1)})"}
     name, fn = STAGES[n]
     gate = fn(cfg)
     gate.setdefault("name", name)
     state["stages"][str(n)] = gate
     if gate.get("passed"):
-        state["last_passed"] = max(state.get("last_passed", 0), n)
-    state["complete"] = state.get("last_passed", 0) >= max(STAGES)
+        state["last_passed"] = max(state.get("last_passed", -1), n)
+    state["complete"] = state.get("last_passed", -1) >= max(STAGES)
     _save_state(cfg, state)
     return gate
 
 
 def run_all(cfg) -> dict:
-    """Run stages 1..6 in order, stopping at the first failed gate."""
-    state = {"stages": {}, "last_passed": 0}
+    """Run every stage in order (0..8), stopping at the first failed gate."""
+    state = {"stages": {}, "last_passed": -1}
     _save_state(cfg, state)
     for n in sorted(STAGES):
         gate = run_stage(cfg, n, enforce_prev=False)
