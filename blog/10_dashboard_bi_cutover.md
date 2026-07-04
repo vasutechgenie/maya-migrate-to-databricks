@@ -40,11 +40,10 @@ has an exact, defensible answer instead of a vibe - right up to "is the migratio
 ## Migrating the BI layer
 
 Certified gold tables are only half the value - the dashboards on top have to move too, and they
-have to show the *same numbers*. MAYA treats the BI layer as its own agent-driven pipeline:
+have to show the *same numbers*. MAYA treats the BI layer as **Stage 5** - its own agent-driven pipeline that runs end to end:
 
 ```bash
-python3 cli.py bi extract --config examples/northwind/northwind.yaml
-python3 cli.py bi genie  --config examples/northwind/northwind.yaml
+python3 cli.py bi run --config examples/northwind/northwind.yaml
 ```
 
 For each dashboard object the flow is: **extract** the query and datasource (over MCP/API, or an
@@ -58,6 +57,21 @@ it reads are MAYA-certified.
 
 That last point matters: it's how you avoid migrating a dashboard onto numbers that themselves
 aren't proven yet.
+
+## The last stage: generated docs
+
+The final stage (**Stage 6**) closes the loop on knowledge, not just data. Once everything is
+certified and the BI layer is live, MAYA generates full documentation for every pipeline, table,
+view, and dashboard - lineage, DDL, and the exact certification status pulled from `gates.json` -
+and publishes it back to the repo:
+
+```bash
+python3 cli.py docs    --config examples/northwind/northwind.yaml
+python3 cli.py publish --config examples/northwind/northwind.yaml
+```
+
+So the migrated estate ships with its own accurate, regenerated documentation - the opposite of
+the stale wiki most migrations leave behind.
 
 ## Cutover
 
@@ -84,12 +98,14 @@ Northwind was the whole workflow in miniature. To run MAYA for real:
    template; ship a small synthetic example alongside it, exactly like Northwind.
 2. **Copy `templates/project_config.example.yaml`** to your own config: point it at your discovery
    folder, set your schema-to-layer map, your dev/sit catalogs, and your soak windows.
-3. **Run the same workflow** you just watched - preview, then let the agent swarm build and
-   certify wave by wave, and finish with `maya certify` for the whole-system verdict.
+3. **Run the same six stages** you just watched with `maya run --stage all` - or drive each
+   stage yourself - and finish with `maya certify` for the whole-system verdict. Set
+   `agents.driver: cursor` (with a `CURSOR_API_KEY`) to have real LLM coding agents do the build.
 
 Everything you saw in this series - the graph, the verified waves, the derived contracts, the seven
-engines, the three-phase Dev -> SIT -> Soak gate, and the whole-system certification - is
-source-agnostic. The only thing that changes per source is the adapter.
+engines, the test-catalog replication, the three-phase Dev -> SIT -> Soak gate, and the
+whole-system certification - is source-agnostic. The only thing that changes per source is the
+adapter.
 
 ## Thank you
 

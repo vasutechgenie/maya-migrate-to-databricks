@@ -35,12 +35,14 @@ pip install -r requirements.txt
 make demo
 ```
 
-`make demo` runs the full workflow against a bundled example and writes every artifact to
-`examples/northwind/out/`: a normalized dependency graph, an independently verified build
-order, a build contract for every pipeline (the preview), the agent work queue by wave,
-referential-integrity-preserving sample SQL, parity SQL for three validation phases, the
-whole-system certification rollup, and a branded PDF report. No cloud account, no
-credentials, no live source system required.
+`make demo` runs MAYA's **six gated stages** against a bundled example and writes every
+artifact to `examples/northwind/out/`: a normalized dependency graph and independently
+verified build order, a 100% traversability score, a whole-estate test-catalog
+replication script filled with referential-integrity synthetic data, one spec PDF per
+pipeline, the swarm-built and topologically certified `gates.json`, the migrated BI layer
+(Lakeview/Genie), and full generated docs. It runs with the deterministic **offline agent
+driver**, so there's no cloud account, no credentials, and no live source system
+required.
 
 ## Meet Northwind
 
@@ -56,32 +58,38 @@ Northwind isn't just a toy for the blog. It's also the project's **test fixture*
 pytest suite asserts on Northwind's exact waves, classifications, and parity targets, so
 the examples in these posts are guaranteed to stay true as the code evolves.
 
-## The phases
+## The six stages
 
-Everything MAYA does is a function of one normalized graph. The workflow splits into a
-**preview** (nothing is built yet - you can review the plan before a line of code is
-written) and a **build + certify** loop (a swarm of AI agents turns the plan into the real
-lakehouse, wave by wave):
+Everything MAYA does is a function of one normalized graph, and it runs as **six
+hard-gated stages**. Each stage runs its work, evaluates a gate, and refuses to advance
+until that gate is green - so the estate is only ever built on a foundation that already
+proved out. `make demo` runs all six with `maya run --stage all`:
 
-Preview:
+1. **Collect + score** - parse the source into a graph, order it into waves, derive a
+   contract per pipeline, and score the estate: every pipeline must be 100% traversable
+   and every table, view, and external system identified.
+2. **Replicate** - replicate every table and view into a Databricks test catalog, filled
+   with referential-integrity-preserving data (synthetic 10k, or sampled from source).
+3. **Specs** - render one branded build-spec PDF per pipeline.
+4. **Build + certify** - a swarm of AI coding agents builds the *real* pipelines wave by
+   wave, proves each on the synthetic dev catalog, then certifies in strict topological
+   order (a pipeline certifies only after its predecessors do).
+5. **BI** - migrate the dashboards end to end: extract, convert to Databricks SQL, prove
+   result-for-result parity, republish, and replicate as Lakeview + Genie.
+6. **Docs + publish** - generate full documentation for every pipeline, table, view, and
+   dashboard, and publish it back to the repo.
 
-1. **graph** - the adapter parses your source into `objects.csv` + `edges.csv`.
-2. **order** - topological build order (waves) via SCC + longest-path layering.
-3. **verify** - a *different* set of algorithms re-derives the order and proves it.
-4. **context** - a deterministic build contract per pipeline (needs / logic / output).
-5. **report** - a branded PDF preview of the whole migration.
-
-Build + certify:
-
-6. **orchestrate** - a pool of AI agents drains each wave's queue and builds the *real* pipelines.
-7. **sample** - build a small "illusion of production" for cheap logic proofs.
-8. **validate** - prove parity dev -> sit -> soak, with no partial credit.
-9. **certify** - the whole-system rollup: the migration is complete only when every pipeline (and dashboard) is certified.
+MAYA drives the build/validate/fix work in stages 4-5 through an **agent driver**: the
+demo uses a deterministic *offline* backend (no LLM, no network) so the whole thing is
+reproducible; point it at the *Cursor* backend to drive real LLM coding agents on your
+own estate.
 
 The thing I care most about is that none of this is guessed. The graph comes from the
 source; the order is computed and independently checked; the contracts are derived, not
 authored; the agents build inside those contracts; and certification is binary and
-machine-verified - per pipeline, then for the whole system.
+machine-verified - per pipeline, then for the whole system. The existing verbs (`graph`,
+`order`, `verify`, `context`, `report`, `validate`, `certify`, `bi`) are all still there
+as primitives the stages call under the hood.
 
 ## Why "MAYA"?
 
@@ -94,13 +102,14 @@ over time. We'll get deep into all three phases later in the series.
 
 ## Where we're headed
 
-Over the next nine parts we'll follow Northwind through the whole pipeline: how MAYA reads
-any source, how it builds and verifies the dependency graph and the wave plan, how the
-per-pipeline contract is derived, how seven reusable engines cover the estate, how a swarm
-of AI agents builds the estate wave by wave, and how the three-phase parity gate (Dev, SIT,
-and the sustained Soak) certifies each table - up to the whole-system certification that
-declares the migration complete. We'll finish with the live dashboard, BI/Genie migration,
-and cutover - and how to point MAYA at your own estate.
+Over the next nine parts we'll follow Northwind through all six stages: how MAYA reads
+any source and scores it 100% traversable, how it builds and verifies the dependency graph
+and the wave plan, how the per-pipeline contract is derived, how seven reusable engines
+cover the estate, how the agent swarm builds it wave by wave against a replicated test
+catalog, and how the three-phase parity gate (Dev, SIT, and the sustained Soak) certifies
+each table in topological order - up to the whole-system certification that declares the
+migration complete. We'll finish with the live dashboard, BI/Genie migration, generated
+docs, and cutover - and how to point MAYA at your own estate.
 
 If you want to read ahead, the repo has a durable, versioned version of this same
 walkthrough under `docs/tutorial/`. But the best way to follow along is to clone it and run
