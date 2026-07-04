@@ -192,6 +192,42 @@ blog/               "Migrating with MAYA" hands-on article series + figures
 cli.py              phase + six-stage entrypoint (run --stage N|all)
 ```
 
+## Oops - my migration project has gone supersonic
+
+*Want the world's most efficient, fastest migration to Databricks?*
+
+Most migrations are art projects - hand-rewrites, "validate the important ones," pray at
+cutover, then watch the result quietly drift in production. MAYA is the opposite:
+**deterministic and provable**. A dependency graph, a build order you can prove correct, a
+contract every workload must pass, and an **AI agent swarm** that builds and certifies the
+estate wave by wave to "migration complete."
+
+The swarm is the surprise: **6 months to 3 years of manual work, crunched by a factor set
+only by how well you follow the framework's rules.**
+
+### The MAYA Concept Series (15 articles)
+The full narrative behind MAYA - why migrations take years, and how to turn one into a
+governed, provable assembly line:
+
+1. [The Migration Factory: why enterprise data migrations take years](https://www.linkedin.com/pulse/migration-factory-why-enterprise-data-migrations-take-nelakuditi-uyf9c)
+2. [Optimizing the wrong thing: code conversion is the easy part](https://www.linkedin.com/pulse/optimizing-wrong-thing-code-conversion-easy-part-srinivas-nelakuditi-9hipc)
+3. [Pillar 1 - Deterministic process: no guessing, no heroics](https://www.linkedin.com/pulse/pillar-1-deterministic-process-guessing-heroics-srinivas-nelakuditi-3nfjc)
+4. [Pillar 2 - Context: the dependency graph is the foundation](https://www.linkedin.com/pulse/pillar-2-context-dependency-graph-foundation-srinivas-nelakuditi-mjooc)
+5. [Knowing what to migrate (and what to leave behind)](https://www.linkedin.com/pulse/knowing-what-migrate-leave-behind-srinivas-nelakuditi-oj6vc)
+6. [Sequencing the work: waves you can prove are correct](https://www.linkedin.com/pulse/sequencing-work-waves-you-can-prove-correct-srinivas-nelakuditi-wbqgc)
+7. [Pillar 3 - Rules: stop prompting, start engineering](https://www.linkedin.com/pulse/pillar-3-rules-stop-prompting-start-engineering-srinivas-nelakuditi-scz9c)
+8. [Proving completeness: the contract every workload must pass](https://www.linkedin.com/pulse/proving-completeness-contract-every-workload-must-pass-nelakuditi-kpf5c)
+9. [Pillar 4 - Automation, last: where AI actually belongs](https://www.linkedin.com/pulse/pillar-4-automation-last-where-ai-actually-belongs-nelakuditi-ufzyc)
+10. [Validating business correctness: no partial credit](https://www.linkedin.com/pulse/validating-business-correctness-partial-credit-srinivas-nelakuditi-rkgdc)
+11. [The illusion of production: cutting validation cost without cutting rigor](https://www.linkedin.com/pulse/illusion-production-cutting-validation-cost-without-rigor-nelakuditi-qylzc)
+12. [The drift loop: what to do when the numbers don't match](https://www.linkedin.com/pulse/drift-loop-what-do-when-numbers-dont-match-srinivas-nelakuditi-xjduc)
+13. [Parallelism without chaos: agent pools and wave barriers](https://www.linkedin.com/pulse/parallelism-without-chaos-agent-pools-wave-barriers-nelakuditi-q09zc)
+14. [Beyond data: migrating the BI layer - and bringing AI to it](https://www.linkedin.com/pulse/beyond-data-migrating-bi-layer-bringing-ai-srinivas-nelakuditi-xkrwc)
+15. [From art to engineering: a repeatable operating model for modernization](https://www.linkedin.com/pulse/from-art-engineering-repeatable-operating-model-srinivas-nelakuditi-ygbqc)
+
+Prefer to *do* rather than read? The same journey is a runnable, hands-on walkthrough on the
+Northwind demo: [docs/tutorial/](docs/tutorial/README.md).
+
 ## Documentation
 - **New here?** Do the hands-on tutorial: [docs/tutorial/](docs/tutorial/README.md) (10 parts, built on Northwind).
 - **The method:** [docs/01_methodology.md](docs/01_methodology.md).
