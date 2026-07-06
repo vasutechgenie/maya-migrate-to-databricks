@@ -48,6 +48,7 @@ given source, so the same engine migrates:
 | Source | Adapter status |
 |---|---|
 | **Azure Synapse** (SQL DW + Automic/UC4) | reference adapter (shipped) |
+| **PostgreSQL** (OLTP/OLAP marts + PL/pgSQL jobs) | reference adapter (shipped) |
 | **Snowflake** | adapter (SourceAdapter contract) |
 | **Amazon Redshift** | adapter |
 | **Hadoop / Hive / Spark (on-prem)** | adapter |
@@ -69,9 +70,10 @@ parity at full scale on production-copied data, and then keep re-proving it whil
 systems run in parallel, because a pipeline that matches at cutover can still **drift** a
 week later.
 
-> Everything in this repo is source-agnostic core + a reference Synapse adapter + a fully
-> runnable synthetic demo (**Northwind**). No customer data, no credentials, no live
-> connections required.
+> Everything in this repo is source-agnostic core + reference **Synapse** and **PostgreSQL**
+> adapters + a fully runnable synthetic demo (**Northwind**, Synapse), plus a second bundled
+> **retail** source estate (PostgreSQL) that exercises the Postgres adapter. No customer data,
+> no credentials, no live connections required.
 
 ```mermaid
 flowchart LR
@@ -186,7 +188,7 @@ Dev (stage 4) and prod (stage 7) build the identical authored SQL, and dev BI (s
 and prod BI (stage 8) run the identical converted queries; a prod parity fix is persisted
 back to the single source of truth so the two phases never diverge.
 
-The swarm behind stages 4/6 (and the apply path for stage 9) runs via `agents.driver` in the project YAML:
+The swarm behind the build stages 4/7 (and the apply path for stages 10-11) runs via `agents.driver` in the project YAML:
 `offline` (default, deterministic, no LLM - what the demo uses) or `cursor` (real LLM
 coding agents via the Cursor SDK, needs `CURSOR_API_KEY`).
 
@@ -247,10 +249,10 @@ land - each is a real, tested stage with an offline demo artifact, not a slide:
 
 | Migration concern | MAYA stage(s) | Evidence / artifact |
 |---|---|---|
-| Data pipelines + parity (dev sample -> prod full) | 1-7 | `gates.json` (CERTIFIED), MAYA dev/SIT/soak |
+| Data pipelines + parity (dev sample -> prod full) | 1-4, 6-7 | `gates.json` (CERTIFIED), MAYA dev/SIT/soak |
 | BI / dashboards (dev-certify -> prod parity + publish) | 5 + 8 | `stage5_bi_dev_gate.json`, `stage5_bi_gate.json`, republished + Genie/Lakeview |
 | Users / groups / roles / service principals (RBAC) | 0 + 10 | `readiness/principals.csv`, UC grants |
-| Unity Catalog grants, RLS + column masking | 10 | `stage7_identity.sql`, access-parity gate |
+| Unity Catalog grants, RLS + column masking | 10 | `stage10_identity.sql`, access-parity gate |
 | Secrets / credentials | 0 + 10 | `readiness/secrets.csv`, secret scope |
 | Data classification / PII / compliance | 0 + 10 | `readiness/classification.csv`, masks, `security_facts.json` |
 | Data governance (owners, tags, glossary, lineage) | 9 + 10 | generated docs, `ALTER SCHEMA ... OWNER/TAGS` |
@@ -265,10 +267,12 @@ core/               source-agnostic library (graph, order, contract, engines,
                     twelve-stage: readiness, score, replicate, pipeline_spec,
                     conformance, bi, docs, publish, identity, enablement, stages)
 core/agents/        AI coding-agent swarm driver (offline + Cursor SDK backends)
-adapters/           SourceAdapter ABC + reference Synapse adapter; BI connectors
+adapters/           SourceAdapter ABC + reference Synapse and PostgreSQL adapters; BI connectors
 templates/          project/engine/maya/bi config, dashboard DDL, agent prompts
 examples/northwind/ the runnable synthetic demo (graph, DDL, config, BI export,
                     artifacts/security: principals/grants/secrets/classification)
+examples/retail/    second source estate: a PostgreSQL retail warehouse (postgres/schema.sql
+                    + normalized graph, DDL, BI export, security) for the Postgres adapter
 docs/               methodology, MAYA validation, execution plan, guides
 docs/tutorial/      hands-on walkthrough (01-10) using the Northwind demo
 tests/              pytest suite asserting the Northwind goldens
@@ -323,6 +327,11 @@ Northwind demo: [docs/tutorial/](docs/tutorial/README.md).
 - **Cutover, rollback & day-2 ops (Stage 11):** [docs/16_cutover_rollback_operations.md](docs/16_cutover_rollback_operations.md).
 - **Onboard a new source:** [docs/12_adapter_authoring_guide.md](docs/12_adapter_authoring_guide.md).
 - **Release notes:** [CHANGELOG.md](CHANGELOG.md).
+- **How MAYA measures up:** the [Nelakuditi Migration Benchmark (NMB)](https://github.com/vasutechgenie/nelakuditi-migration-benchmark) -
+  a neutral, reproducible OSS benchmark for data-platform-to-Databricks migrations.
+  MAYA's numbers there are **measured** by running this engine on TPC-H/TPC-DS +
+  Northwind/Retail; competitor numbers are cited. MAYA leads every dimension on
+  evidence (certified correctness, determinism, sustained parity).
 
 ## Running it on your estate (any source -> Databricks)
 Point an adapter at your exported metadata and copy `templates/project_config.example.yaml`
