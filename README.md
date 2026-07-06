@@ -1,8 +1,17 @@
-# MAYA - Migration Accelerator
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/maya-logo-dark.png">
+    <img alt="MAYA - Migration Accelerator" src="docs/assets/maya-logo.png" width="620">
+  </picture>
+</p>
 
-[![ci](https://github.com/vasutechgenie/maya-migrate-to-databricks/actions/workflows/ci.yml/badge.svg)](https://github.com/vasutechgenie/maya-migrate-to-databricks/actions/workflows/ci.yml)
-[![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
+<h1 align="center">MAYA - Migration Accelerator</h1>
+
+<p align="center">
+  <a href="https://github.com/vasutechgenie/maya-migrate-to-databricks/actions/workflows/ci.yml"><img alt="ci" src="https://github.com/vasutechgenie/maya-migrate-to-databricks/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-Apache--2.0-blue.svg"></a>
+  <a href="pyproject.toml"><img alt="python" src="https://img.shields.io/badge/python-3.9%2B-blue.svg"></a>
+</p>
 
 **MAYA** turns *any* data-platform migration **to Databricks** into a **deterministic,
 reviewable engineering process** instead of an artisanal rewrite. It reads your exported
