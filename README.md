@@ -328,10 +328,12 @@ Northwind demo: [docs/tutorial/](docs/tutorial/README.md).
 - **Onboard a new source:** [docs/12_adapter_authoring_guide.md](docs/12_adapter_authoring_guide.md).
 - **Release notes:** [CHANGELOG.md](CHANGELOG.md).
 - **How MAYA measures up:** the [Nelakuditi Migration Benchmark (NMB)](https://github.com/vasutechgenie/nelakuditi-migration-benchmark) -
-  a neutral, reproducible OSS benchmark for data-platform-to-Databricks migrations.
-  MAYA's numbers there are **measured** by running this engine on TPC-H/TPC-DS +
-  Northwind/Retail; competitor numbers are cited. MAYA leads every dimension on
-  evidence (certified correctness, determinism, sustained parity).
+  a neutral, reproducible OSS benchmark for enterprise migrations from any source
+  technology to any target technology (Databricks is the first-class reference
+  target). MAYA is the Databricks-target reference adapter: its numbers there are
+  **measured** by running this engine on TPC-H/TPC-DS + Northwind/Retail; competitor
+  numbers are cited. MAYA leads every dimension on evidence (certified correctness,
+  determinism, sustained parity).
 
 ## Running it on your estate (any source -> Databricks)
 Point an adapter at your exported metadata and copy `templates/project_config.example.yaml`
