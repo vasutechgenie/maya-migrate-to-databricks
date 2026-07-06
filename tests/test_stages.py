@@ -1,4 +1,4 @@
-"""End-to-end nine-stage full-lifecycle flow on Northwind with the offline driver.
+"""End-to-end twelve-stage full-lifecycle flow on Northwind with the offline driver.
 
 Proves each stage's gate passes, and that the whole flow reaches a certified,
 documented, secured, and enabled complete migration with zero external calls.
@@ -10,8 +10,8 @@ import os
 def test_all_stages_pass(staged):
     _cfg, state = staged
     assert state["complete"] is True
-    assert state["last_passed"] == 8
-    for n in range(0, 9):
+    assert state["last_passed"] == 11
+    for n in range(0, 12):
         assert state["stages"][str(n)]["passed"], f"stage {n} failed"
 
 
@@ -19,7 +19,8 @@ def test_stage_state_written(staged):
     cfg, _ = staged
     assert os.path.exists(cfg.out("stage_state.json"))
     st = json.load(open(cfg.out("stage_state.json")))
-    assert st["stages"]["4"]["system"]["status"] == "MIGRATION_COMPLETE"
+    # system certification is emitted by the prod build+certify stage (7)
+    assert st["stages"]["7"]["system"]["status"] == "MIGRATION_COMPLETE"
 
 
 def test_stage0_readiness_gate(staged):
@@ -172,10 +173,28 @@ def test_stage4_topological_certification(staged):
         assert gates[p]["status"] == "CERTIFIED"
 
 
-def test_stage5_bi_done(staged):
+def test_stage5_bi_dev_certified(staged):
+    """BI dev phase (stage 5): converted queries dev-certify clean on the sample gold, with
+    no source parity / republish / Genie yet."""
+    cfg, _ = staged
+    gate = json.load(open(cfg.out("stage5_bi_dev_gate.json")))
+    assert gate["passed"] is True
+    assert gate["phase"] == "dev"
+    assert gate["dev_certified"] == gate["objects"] == 2
+    # authored records carry dev_certified but not the prod flags yet
+    from core import bi as bi_mod
+    for o in bi_mod.load_objects(cfg):
+        rec = json.load(open(os.path.join(
+            bi_mod._authored_dir(cfg), f"{bi_mod._safe(o.obj_id)}.json")))
+        assert rec["dev_certified"] is True
+
+
+def test_stage8_bi_done(staged):
+    """BI prod phase (stage 8): parity + republish + Genie on the full gold."""
     cfg, _ = staged
     gate = json.load(open(cfg.out("stage5_bi_gate.json")))
     assert gate["passed"] is True
+    assert gate.get("phase") == "prod"
     assert gate["done"] == gate["objects"] == 2
 
 

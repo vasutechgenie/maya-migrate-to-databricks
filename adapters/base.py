@@ -212,6 +212,50 @@ class SourceAdapter(ABC):
             "compliance": [],
         }
 
+    # ---- 8. knowledge-base manifest (what the customer must export) --------
+    # Declares the asset kinds this adapter can ingest so the web app can render an
+    # export checklist, route uploads, and compute collected-vs-expected coverage.
+    # Each entry: {kind, label, required, patterns, dest_subdir, instructions}.
+    @classmethod
+    def kb_manifest(cls) -> List[dict]:
+        return [
+            {"kind": "graph", "label": "Dependency graph export (objects + edges)",
+             "required": True, "patterns": ["objects.csv", "edges.csv"],
+             "dest_subdir": "source",
+             "instructions": "Export the pipeline/table dependency graph as objects.csv "
+             "and edges.csv (or upload raw pipeline/source code and let MAYA parse it)."},
+            {"kind": "ddl", "label": "Table & view DDL (CREATE statements)",
+             "required": True, "patterns": ["*.sql"], "dest_subdir": "artifacts/DW",
+             "instructions": "Export CREATE TABLE / CREATE VIEW for every object, ideally "
+             "under <db>/<schema>/{Tables,Views}/<name>.sql."},
+            {"kind": "connections", "label": "Connection inventory",
+             "required": False, "patterns": ["connections.csv"], "dest_subdir": "source",
+             "instructions": "Export the connection/linked-service inventory as "
+             "connections.csv (connection,type,external_system,host,notes)."},
+            {"kind": "schedules", "label": "Scheduler triggers",
+             "required": False, "patterns": ["schedules.csv"], "dest_subdir": "source",
+             "instructions": "Export scheduler triggers that invoke pipelines as "
+             "schedules.csv (trigger,schedule,pipeline,enabled)."},
+            {"kind": "configs", "label": "Config / control tables (CSV)",
+             "required": False, "patterns": ["configs/*.csv"],
+             "dest_subdir": "source/configs",
+             "instructions": "Dump control/config DB tables (watermarks, mappings) as "
+             "CSV files under a configs/ folder."},
+            {"kind": "security", "label": "Identity, grants, secrets, classification",
+             "required": False,
+             "patterns": ["principals.csv", "grants.csv", "secrets.csv",
+                          "classification.csv", "security_facts.json"],
+             "dest_subdir": "artifacts/security",
+             "instructions": "Export principals, grants, secret names (never values), and "
+             "PII classification for the estate."},
+            {"kind": "bi", "label": "BI package (dashboards / queries)",
+             "required": False,
+             "patterns": ["bi_queries.json", "*.pbix", "*.twb", "*.twbx", "*.lookml"],
+             "dest_subdir": "bi_export",
+             "instructions": "Export the BI workbooks/queries package for the dashboards "
+             "that read this estate."},
+        ]
+
     # convenience: run collect+parse and persist
     def build_graph(self) -> Graph:
         self.collect()

@@ -85,10 +85,56 @@ flowchart LR
   barrier -->|"no"| swarm
   barrier -->|"yes, next wave"| swarm
   barrier -->|"all waves"| soak["MAYA-Soak: parallel run T+7 & T+14"]
-  soak -->|"zero drift + BI done"| ident["Stage 7: UC grants + masks + secrets + governance"]
-  ident --> enable["Stage 8: training + cutover/rollback + day-2 ops"]
+  soak -->|"zero drift + BI done"| ident["Stage 10: UC grants + masks + secrets + governance"]
+  ident --> enable["Stage 11: training + cutover/rollback + day-2 ops"]
   enable -->|"go/no-go all green"| sys["System certification: MIGRATION COMPLETE"]
 ```
+
+## The MAYA web application
+
+Everything above runs from the open-source CLI. There is also a full **MAYA web application** -
+a futuristic command center (FastAPI + PostgreSQL + React) that drives the entire twelve-stage
+lifecycle live against real Databricks workspaces, with a knowledge base, an AI-assisted intake,
+a real-time swarm view, a dependency-graph explorer, per-stage evidence, and an Impact/ROI
+dashboard.
+
+> ### This application is delivered by experts - it is not self-service
+> The screenshots below are from the MAYA web application. **It is not an open-source, self-service
+> product.** Standing it up and running a real migration end to end requires the MAYA experts to
+> configure workspaces, connections, and governance and to drive the AI swarm. To evaluate or
+> engage it for your migration, reach the **Databricks Professional Services** team or email
+> **[srinivas.nelakuditi@databricks.com](mailto:srinivas.nelakuditi@databricks.com)**.
+
+### Command center
+
+![Login](docs/screenshots/01_login.png)
+![Mission Control - lifecycle progress and Impact/ROI](docs/screenshots/02_mission_control.png)
+![Knowledge Base](docs/screenshots/03_knowledge_base.png)
+![Live Swarm](docs/screenshots/04_live_swarm.png)
+![Graph Explorer](docs/screenshots/05_graph_explorer.png)
+
+### The twelve lifecycle stages
+
+![Stage 0 - Readiness](docs/screenshots/10_stage00_readiness.png)
+![Stage 1 - Collect + Score](docs/screenshots/11_stage01_score.png)
+![Stage 2 - Replicate (dev)](docs/screenshots/12_stage02_replicate.png)
+![Stage 3 - Specs](docs/screenshots/13_stage03_specs.png)
+![Stage 4 - Build + Certify (dev)](docs/screenshots/14_stage04_build_certify_dev.png)
+![Stage 5 - BI Convert (dev)](docs/screenshots/15_stage05_bi_convert_dev.png)
+![Stage 6 - Full Load (prod)](docs/screenshots/16_stage06_full_load.png)
+![Stage 7 - Build + Certify (prod)](docs/screenshots/17_stage07_build_certify_prod.png)
+![Stage 8 - BI Parity + Publish](docs/screenshots/18_stage08_bi_parity_publish.png)
+![Stage 9 - Docs + Publish](docs/screenshots/19_stage09_docs.png)
+![Stage 10 - Identity + Security](docs/screenshots/20_stage10_identity.png)
+![Stage 11 - Enablement + Go-live](docs/screenshots/21_stage11_enablement.png)
+
+### Operate
+
+![Run History](docs/screenshots/30_runs.png)
+![Artifacts](docs/screenshots/31_artifacts.png)
+![Connections](docs/screenshots/32_connections.png)
+![Admin / RBAC](docs/screenshots/33_admin.png)
+![New Project](docs/screenshots/34_new_project.png)
 
 ## 60-second quickstart (the Northwind demo)
 ```bash
@@ -96,10 +142,10 @@ git clone https://github.com/vasutechgenie/maya-migrate-to-databricks
 cd maya-migrate-to-databricks
 pip install -r requirements.txt        # reportlab, pypdf, PyYAML
 
-make demo     # the nine-stage full-lifecycle flow, end to end, offline (see below)
+make demo     # the twelve-stage full-lifecycle flow, end to end, offline (see below)
 make test     # the deterministic goldens for the demo
 ```
-`make demo` runs MAYA's **nine gated stages** on `examples/northwind/` (a fictional
+`make demo` runs MAYA's **twelve gated stages** on `examples/northwind/` (a fictional
 retailer moving to Databricks - Synapse is the worked source, but the flow is identical
 for any source) with the deterministic **offline agent driver**, so it runs end to end
 with zero external calls. It writes every artifact to `examples/northwind/out/`: the
@@ -110,13 +156,14 @@ topologically-certified `gates.json`, the migrated BI layer (Lakeview/Genie), fu
 generated docs, the Unity Catalog security model (grants + masks + secrets + governance),
 and the enablement + cutover/rollback + day-2 ops pack.
 
-### The nine stages (full lifecycle)
-Stages 1-6 migrate and certify the **data**; Stage 0 collects the **non-data** estate up
-front, and Stages 7-8 finish the migration the way a real program does - security,
-people, and operations.
+### The twelve stages (full lifecycle)
+Stages 1-8 migrate and certify the **data + BI** across two explicit phases - dev (a ~10k
+RI-preserving sample) and prod (the full/historical backfill) - using the **same pipeline
+and BI code** in both. Stage 0 collects the **non-data** estate up front, and Stages 9-11
+finish the migration the way a real program does - docs, security, people, and operations.
 
 ```bash
-make demo                                          # run all nine stages in order
+make demo                                          # run all twelve stages in order
 python3 cli.py run --stage all --config examples/northwind/northwind.yaml
 python3 cli.py run --stage 7   --config examples/northwind/northwind.yaml   # one stage
 ```
@@ -124,15 +171,22 @@ python3 cli.py run --stage 7   --config examples/northwind/northwind.yaml   # on
 |---|---|---|
 | 0 readiness | `cli.py readiness` | identity/access/secrets/classification collected + consistent |
 | 1 collect + score | `cli.py score` | 100% traversable; all tables/views/externals identified |
-| 2 replicate | `cli.py replicate` | every table+view in the test catalog, RI-filled |
+| 2 replicate (dev) | `cli.py replicate` | every table+view in the test catalog, RI-filled on a ~10k sample |
 | 3 specs | `cli.py specs` | one spec PDF per pipeline |
-| 4 build + certify | `cli.py build` | swarm builds dev-green, then CERTIFIED in topo order |
-| 5 BI | `cli.py bi run` | every dashboard converted + parity + republished + Genie |
-| 6 docs + publish | `cli.py docs` + `cli.py publish` | full docs generated + committed |
-| 7 identity + security + governance | `cli.py identity` | source grant matrix mapped 1:1 to UC; every PII column masked; every credential scoped |
-| 8 enablement + go-live | `cli.py enablement` | training + runbooks + cutover/rollback + day-2 ops; all go/no-go checks green |
+| 4 build + certify (dev) | `cli.py build` | swarm builds the converted SQL dev-green on the sample, in topo order |
+| 5 BI convert + dev-certify (dev) | `cli.py run --stage 5` | every dashboard query converted + runs clean on the sample gold |
+| 6 full load + historical (prod) | `cli.py run --stage 6` | full/historical source backfilled for every pipeline |
+| 7 build + certify (prod) | `cli.py run --stage 7` | the SAME code CERTIFIED to 100% parity on real data, in topo order |
+| 8 BI parity + publish (prod) | `cli.py bi run` | the SAME queries parity-checked on full gold + republished + Genie |
+| 9 docs + publish | `cli.py docs` + `cli.py publish` | full docs generated + committed |
+| 10 identity + security + governance | `cli.py identity` | source grant matrix mapped 1:1 to UC; every PII column masked; every credential scoped |
+| 11 enablement + go-live | `cli.py enablement` | training + runbooks + cutover/rollback + day-2 ops; all go/no-go checks green |
 
-The swarm behind stages 4-5 (and the apply path for stage 7) runs via `agents.driver` in the project YAML:
+Dev (stage 4) and prod (stage 7) build the identical authored SQL, and dev BI (stage 5)
+and prod BI (stage 8) run the identical converted queries; a prod parity fix is persisted
+back to the single source of truth so the two phases never diverge.
+
+The swarm behind stages 4/6 (and the apply path for stage 9) runs via `agents.driver` in the project YAML:
 `offline` (default, deterministic, no LLM - what the demo uses) or `cursor` (real LLM
 coding agents via the Cursor SDK, needs `CURSOR_API_KEY`).
 
@@ -193,23 +247,23 @@ land - each is a real, tested stage with an offline demo artifact, not a slide:
 
 | Migration concern | MAYA stage(s) | Evidence / artifact |
 |---|---|---|
-| Data pipelines + parity | 1-4 | `gates.json` (CERTIFIED), MAYA dev/SIT/soak |
-| BI / dashboards | 5 | `stage5_bi_gate.json`, republished + Genie/Lakeview |
-| Users / groups / roles / service principals (RBAC) | 0 + 7 | `readiness/principals.csv`, UC grants |
-| Unity Catalog grants, RLS + column masking | 7 | `stage7_identity.sql`, access-parity gate |
-| Secrets / credentials | 0 + 7 | `readiness/secrets.csv`, secret scope |
-| Data classification / PII / compliance | 0 + 7 | `readiness/classification.csv`, masks, `security_facts.json` |
-| Data governance (owners, tags, glossary, lineage) | 6 + 7 | generated docs, `ALTER SCHEMA ... OWNER/TAGS` |
-| Training / enablement / change management | 8 | `enablement/training/*`, runbooks |
-| Cutover / rollback / decommission | 8 | cutover + rollback plans, decommission checklist |
-| Day-2 ops (monitoring, alerting, cost, DR) | 8 | `enablement/operations.{md,json}` |
+| Data pipelines + parity (dev sample -> prod full) | 1-7 | `gates.json` (CERTIFIED), MAYA dev/SIT/soak |
+| BI / dashboards (dev-certify -> prod parity + publish) | 5 + 8 | `stage5_bi_dev_gate.json`, `stage5_bi_gate.json`, republished + Genie/Lakeview |
+| Users / groups / roles / service principals (RBAC) | 0 + 10 | `readiness/principals.csv`, UC grants |
+| Unity Catalog grants, RLS + column masking | 10 | `stage7_identity.sql`, access-parity gate |
+| Secrets / credentials | 0 + 10 | `readiness/secrets.csv`, secret scope |
+| Data classification / PII / compliance | 0 + 10 | `readiness/classification.csv`, masks, `security_facts.json` |
+| Data governance (owners, tags, glossary, lineage) | 9 + 10 | generated docs, `ALTER SCHEMA ... OWNER/TAGS` |
+| Training / enablement / change management | 11 | `enablement/training/*`, runbooks |
+| Cutover / rollback / decommission | 11 | cutover + rollback plans, decommission checklist |
+| Day-2 ops (monitoring, alerting, cost, DR) | 11 | `enablement/operations.{md,json}` |
 
 ## Repo layout
 ```
 core/               source-agnostic library (graph, order, contract, engines,
                     validation, maya, bi, orchestration, branding, reports;
-                    nine-stage: readiness, score, replicate, pipeline_spec,
-                    conformance, docs, publish, identity, enablement, stages)
+                    twelve-stage: readiness, score, replicate, pipeline_spec,
+                    conformance, bi, docs, publish, identity, enablement, stages)
 core/agents/        AI coding-agent swarm driver (offline + Cursor SDK backends)
 adapters/           SourceAdapter ABC + reference Synapse adapter; BI connectors
 templates/          project/engine/maya/bi config, dashboard DDL, agent prompts
@@ -219,7 +273,7 @@ docs/               methodology, MAYA validation, execution plan, guides
 docs/tutorial/      hands-on walkthrough (01-10) using the Northwind demo
 tests/              pytest suite asserting the Northwind goldens
 blog/               "Migrating with MAYA" hands-on article series + figures
-cli.py              phase + nine-stage entrypoint (run --stage N|all)
+cli.py              phase + twelve-stage entrypoint (run --stage N|all)
 ```
 
 ## Oops - my migration project has gone supersonic
@@ -264,9 +318,9 @@ Northwind demo: [docs/tutorial/](docs/tutorial/README.md).
 - **The validation technique:** [docs/08_maya_two_phase_validation.md](docs/08_maya_two_phase_validation.md) and [docs/07_validation_framework.md](docs/07_validation_framework.md).
 - **BI migration + Genie AI/BI:** [docs/13_bi_layer_migration.md](docs/13_bi_layer_migration.md).
 - **Non-data estate (Stage 0):** [docs/00_readiness.md](docs/00_readiness.md).
-- **Identity, security & governance (Stage 7):** [docs/14_identity_security_governance.md](docs/14_identity_security_governance.md).
-- **Enablement & training (Stage 8):** [docs/15_enablement_training.md](docs/15_enablement_training.md).
-- **Cutover, rollback & day-2 ops (Stage 8):** [docs/16_cutover_rollback_operations.md](docs/16_cutover_rollback_operations.md).
+- **Identity, security & governance (Stage 10):** [docs/14_identity_security_governance.md](docs/14_identity_security_governance.md).
+- **Enablement & training (Stage 11):** [docs/15_enablement_training.md](docs/15_enablement_training.md).
+- **Cutover, rollback & day-2 ops (Stage 11):** [docs/16_cutover_rollback_operations.md](docs/16_cutover_rollback_operations.md).
 - **Onboard a new source:** [docs/12_adapter_authoring_guide.md](docs/12_adapter_authoring_guide.md).
 - **Release notes:** [CHANGELOG.md](CHANGELOG.md).
 

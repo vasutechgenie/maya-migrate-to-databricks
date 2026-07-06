@@ -1,0 +1,8 @@
+principal,type,member_of,source_role,description
+retail_engineers,group,,db_datawriter,Data engineering team (builds and operates pipelines)
+retail_analysts,group,,db_datareader,BI analysts (read gold + serving marts)
+retail_stewards,group,,db_owner,Data stewards / governance owners
+retail_ops,group,,db_operator,Platform operations / on-call
+sp_retail_etl,service_principal,,etl_service,ETL service principal that runs all pipelines
+dana@retail.example,user,retail_engineers,,Data engineer
+evan@retail.example,user,retail_analysts,,BI analyst

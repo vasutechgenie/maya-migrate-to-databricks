@@ -1,0 +1,10 @@
+{
+  "encryption_at_rest": "platform-managed keys (source Postgres); Unity Catalog managed storage (target)",
+  "encryption_in_transit": "TLS 1.2+ for all JDBC/object-store/API connections",
+  "network": "source reachable over private endpoints; target on a private-link workspace",
+  "audit_logging": "source Postgres audit -> target Unity Catalog system.access.audit",
+  "row_level_security": "source RLS on core.dim_customer by region -> UC row filter",
+  "column_masking": "source dynamic masking on customer_name/email/phone -> UC column mask",
+  "compliance": ["GDPR", "CCPA", "PCI-DSS"],
+  "retention_days": 2555
+}

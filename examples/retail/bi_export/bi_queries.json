@@ -1,0 +1,35 @@
+[
+  {
+    "obj_id": "retail_sales::net_by_region",
+    "system": "powerbi",
+    "dashboard": "Retail Sales",
+    "tile": "Net revenue by region",
+    "original_query": "SELECT region, SUM(net_amount) AS net FROM retail_gold.mart_sales_by_day GROUP BY region ORDER BY net DESC",
+    "converted_query": "SELECT region, SUM(net_amount) AS net FROM mart.sales_by_day GROUP BY region ORDER BY net DESC",
+    "datasource": "RetailDW",
+    "target_tables": ["mart.sales_by_day"],
+    "ordered": true
+  },
+  {
+    "obj_id": "retail_sales::top_products",
+    "system": "powerbi",
+    "dashboard": "Retail Sales",
+    "tile": "Top products by units",
+    "original_query": "SELECT product_name, units_sold FROM retail_gold.mart_product_perf ORDER BY units_sold DESC LIMIT 20",
+    "converted_query": "SELECT product_name, units_sold FROM mart.product_perf ORDER BY units_sold DESC LIMIT 20",
+    "datasource": "RetailDW",
+    "target_tables": ["mart.product_perf"],
+    "ordered": false
+  },
+  {
+    "obj_id": "customer_value::lifetime",
+    "system": "tableau",
+    "dashboard": "Customer Value",
+    "tile": "Lifetime net by segment",
+    "original_query": "SELECT segment, SUM(lifetime_net) AS ltv FROM retail_gold.mart_customer_360 GROUP BY segment",
+    "converted_query": "SELECT segment, SUM(lifetime_net) AS ltv FROM mart.customer_360 GROUP BY segment",
+    "datasource": "RetailDW",
+    "target_tables": ["mart.customer_360"],
+    "ordered": false
+  }
+]

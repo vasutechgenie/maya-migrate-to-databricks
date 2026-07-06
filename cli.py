@@ -539,10 +539,10 @@ def build_parser():
     add_common(en)
     en.set_defaults(func=cmd_enablement)
 
-    rn = sub.add_parser("run", help="run a stage (0..8) or the whole flow (all)")
+    rn = sub.add_parser("run", help="run a stage (0..11) or the whole flow (all)")
     add_common(rn)
     rn.add_argument("--stage", default="all",
-                    help="stage number 0..8, or 'all' (default)")
+                    help="stage number 0..11, or 'all' (default)")
     rn.set_defaults(func=cmd_run)
     return p
 

@@ -150,6 +150,16 @@ from . import validation as _val  # noqa: E402
 from .graph import Graph  # noqa: E402
 
 
+def _emit(progress, event: dict) -> None:
+    """Fire an optional progress callback; never let telemetry break a build."""
+    if progress is None:
+        return
+    try:
+        progress(event)
+    except Exception:
+        pass
+
+
 def _write_authored(cfg, pipeline: str, spec: dict):
     path = os.path.join(_authored_dir(cfg), f"{pipeline}.json")
     with open(path, "w") as f:
@@ -228,11 +238,12 @@ def _build_one(cfg, driver, rec: dict) -> dict:
             "fix_iters": iters, "report": report}
 
 
-def build_swarm(cfg, driver=None) -> dict:
+def build_swarm(cfg, driver=None, progress=None) -> dict:
     """Stage 4b: drive the swarm wave by wave with intra-wave parallelism.
 
     Each wave's pipelines build in parallel (bounded by agents.concurrency); the next
-    wave starts only after the current wave is authored + dev-green.
+    wave starts only after the current wave is authored + dev-green. An optional
+    `progress` callback receives wave_start / pipeline_build events for a live dashboard.
     """
     from .agents import get_driver
     driver = driver or get_driver(cfg)
@@ -245,10 +256,20 @@ def build_swarm(cfg, driver=None) -> dict:
     results = []
     for wave in sorted(by_wave):
         recs = by_wave[wave]
+        _emit(progress, {"type": "wave_start", "stage": 4, "phase": "build",
+                         "wave": wave, "pipelines": [r["pipeline"] for r in recs]})
         with _futures.ThreadPoolExecutor(max_workers=workers) as pool:
             futs = {pool.submit(_build_one, cfg, driver, r): r for r in recs}
             for fut in _futures.as_completed(futs):
-                results.append(fut.result())
+                res = fut.result()
+                results.append(res)
+                _emit(progress, {
+                    "type": "pipeline_build", "stage": 4, "phase": "build",
+                    "wave": res["wave"], "pipeline": res["pipeline"],
+                    "kind": res["kind"], "spec_valid": res["spec_valid"],
+                    "dev_green": res["dev_green"], "fix_iters": res["fix_iters"],
+                    "status": "dev_green" if (res["dev_green"] and res["spec_valid"])
+                    else "failed"})
     green = sum(1 for r in results if r["dev_green"] and r["spec_valid"])
     gate = {"stage": "4b", "passed": green == len(results) and bool(results),
             "pipelines": len(results), "dev_green": green,
@@ -281,7 +302,7 @@ def _pipeline_predecessors(cfg) -> dict:
     return preds
 
 
-def certify_swarm(cfg, driver=None) -> dict:
+def certify_swarm(cfg, driver=None, progress=None) -> dict:
     """Stage 4c: strict prod-quality certification in topological order.
 
     A pipeline may certify only after ALL its predecessors are CERTIFIED (topological
@@ -333,9 +354,19 @@ def certify_swarm(cfg, driver=None) -> dict:
 
     for wave in sorted(by_wave):
         recs = by_wave[wave]
+        _emit(progress, {"type": "wave_start", "stage": 4, "phase": "certify",
+                         "wave": wave, "pipelines": [r["pipeline"] for r in recs]})
         with _futures.ThreadPoolExecutor(max_workers=workers) as pool:
             for pipe, gate in pool.map(_certify_one, recs):
                 gates[pipe] = gate
+                _emit(progress, {
+                    "type": "pipeline_certify", "stage": 4, "phase": "certify",
+                    "wave": wave, "pipeline": pipe,
+                    "status": gate.get("status", ""),
+                    "maya_dev": gate.get("maya_dev", ""),
+                    "maya_sit": gate.get("maya_sit", ""),
+                    "maya_soak": gate.get("maya_soak", ""),
+                    "blocked_by": gate.get("blocked_by", [])})
         # promote this wave's certified pipelines before the next wave gates on them
         for pipe, gate in gates.items():
             if gate.get("status") == "CERTIFIED":

@@ -1,0 +1,61 @@
+{
+  "_comment": "Converted gold transformations for the retail estate. One entry per graph pipeline (names match the rt_* nodes in objects.csv/edges.csv so build+certify rows join to the graph). {src} is the replicated raw source in catalog.test_schema. dev/sample phase certifies a clean build; prod phase certifies 100% parity vs source_metrics_sql.",
+  "pipelines": [
+    {
+      "name": "rt_ingest_pos",
+      "target": "stg_sales",
+      "wave": 0,
+      "databricks_sql": "SELECT s.sale_id,\n       s.store_id,\n       s.customer_id,\n       s.sale_ts,\n       s.channel,\n       si.line_no,\n       si.product_id,\n       si.qty,\n       si.unit_price,\n       si.discount\nFROM {src}.sales s\nJOIN {src}.sale_items si ON si.sale_id = s.sale_id",
+      "source_metrics_sql": "SELECT s.sale_id, s.store_id, s.customer_id, s.sale_ts, s.channel, si.line_no, si.product_id, si.qty, si.unit_price, si.discount FROM retail_src.sales s JOIN retail_src.sale_items si ON si.sale_id = s.sale_id"
+    },
+    {
+      "name": "rt_ingest_ecom",
+      "target": "stg_web_orders",
+      "wave": 0,
+      "databricks_sql": "SELECT web_order_id,\n       customer_id,\n       product_id,\n       order_ts,\n       qty,\n       unit_price\nFROM {src}.web_orders",
+      "source_metrics_sql": "SELECT web_order_id, customer_id, product_id, order_ts, qty, unit_price FROM retail_src.web_orders"
+    },
+    {
+      "name": "rt_loyalty_sync",
+      "target": "stg_customers",
+      "wave": 0,
+      "databricks_sql": "SELECT customer_id,\n       customer_name,\n       email,\n       city,\n       region,\n       segment\nFROM {src}.customers",
+      "source_metrics_sql": "SELECT customer_id, customer_name, email, city, region, segment FROM retail_src.customers"
+    },
+    {
+      "name": "rt_build_core",
+      "target": "mart_customer_360",
+      "wave": 1,
+      "databricks_sql": "SELECT c.customer_id,\n       c.customer_name,\n       c.region,\n       c.segment,\n       COUNT(DISTINCT s.sale_id) AS orders_count,\n       ROUND(COALESCE(SUM(si.unit_price * si.qty * (1 - si.discount)), 0), 2) AS lifetime_net,\n       MAX(CAST(s.sale_ts AS DATE)) AS last_order_date\nFROM {src}.customers c\nLEFT JOIN {src}.sales s ON s.customer_id = c.customer_id\nLEFT JOIN {src}.sale_items si ON si.sale_id = s.sale_id\nGROUP BY c.customer_id, c.customer_name, c.region, c.segment",
+      "source_metrics_sql": "SELECT * FROM retail_gold.mart_customer_360"
+    },
+    {
+      "name": "rt_build_web",
+      "target": "mart_product_perf",
+      "wave": 1,
+      "databricks_sql": "SELECT p.product_id,\n       p.product_name,\n       p.category,\n       SUM(si.qty) AS units_sold,\n       ROUND(SUM(si.unit_price * si.qty * (1 - si.discount)), 2) AS net_amount\nFROM {src}.products p\nJOIN {src}.sale_items si ON si.product_id = p.product_id\nGROUP BY p.product_id, p.product_name, p.category",
+      "source_metrics_sql": "SELECT * FROM retail_gold.mart_product_perf"
+    },
+    {
+      "name": "rt_build_marts",
+      "target": "mart_sales_by_day",
+      "wave": 2,
+      "databricks_sql": "SELECT CAST(s.sale_ts AS DATE) AS cal_date,\n       st.region,\n       COUNT(DISTINCT s.sale_id) AS order_count,\n       ROUND(SUM(si.unit_price * si.qty), 2) AS gross_amount,\n       ROUND(SUM(si.unit_price * si.qty * si.discount), 2) AS discount_amount,\n       ROUND(SUM(si.unit_price * si.qty * (1 - si.discount)), 2) AS net_amount\nFROM {src}.sales s\nJOIN {src}.sale_items si ON si.sale_id = s.sale_id\nJOIN {src}.stores st ON st.store_id = s.store_id\nGROUP BY CAST(s.sale_ts AS DATE), st.region",
+      "source_metrics_sql": "SELECT * FROM retail_gold.mart_sales_by_day"
+    },
+    {
+      "name": "rt_publish_serving",
+      "target": "serving_sales_daily",
+      "wave": 3,
+      "databricks_sql": "SELECT CAST(s.sale_ts AS DATE) AS cal_date,\n       st.region,\n       ROUND(SUM(si.unit_price * si.qty * (1 - si.discount)), 2) AS net_amount\nFROM {src}.sales s\nJOIN {src}.sale_items si ON si.sale_id = s.sale_id\nJOIN {src}.stores st ON st.store_id = s.store_id\nGROUP BY CAST(s.sale_ts AS DATE), st.region",
+      "source_metrics_sql": "SELECT CAST(s.sale_ts AS DATE) AS cal_date, st.region, ROUND(SUM(si.unit_price * si.qty * (1 - si.discount)), 2) AS net_amount FROM retail_src.sales s JOIN retail_src.sale_items si ON si.sale_id = s.sale_id JOIN retail_src.stores st ON st.store_id = s.store_id GROUP BY CAST(s.sale_ts AS DATE), st.region"
+    },
+    {
+      "name": "rt_daily_master",
+      "target": "ops_daily_master",
+      "wave": 4,
+      "databricks_sql": "SELECT CAST(s.sale_ts AS DATE) AS cal_date,\n       COUNT(DISTINCT s.sale_id) AS orders,\n       COUNT(DISTINCT s.customer_id) AS active_customers,\n       ROUND(SUM(si.unit_price * si.qty * (1 - si.discount)), 2) AS net_amount\nFROM {src}.sales s\nJOIN {src}.sale_items si ON si.sale_id = s.sale_id\nGROUP BY CAST(s.sale_ts AS DATE)",
+      "source_metrics_sql": "SELECT CAST(s.sale_ts AS DATE) AS cal_date, COUNT(DISTINCT s.sale_id) AS orders, COUNT(DISTINCT s.customer_id) AS active_customers, ROUND(SUM(si.unit_price * si.qty * (1 - si.discount)), 2) AS net_amount FROM retail_src.sales s JOIN retail_src.sale_items si ON si.sale_id = s.sale_id GROUP BY CAST(s.sale_ts AS DATE)"
+    }
+  ]
+}

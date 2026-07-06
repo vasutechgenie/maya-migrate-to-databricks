@@ -176,6 +176,28 @@ class SynapseAdapter(SourceAdapter):
         with open(path, newline="") as f:
             return list(csv.DictReader(f))
 
+    # ---- 8. knowledge-base manifest (Synapse specifics) -------------------
+    @classmethod
+    def kb_manifest(cls) -> List[dict]:
+        m = SourceAdapter.kb_manifest()
+        how = {
+            "graph": "From Synapse: export the DW dependency graph (or the Automic XML + "
+                     "ARM templates) as objects.csv/edges.csv. MAYA can also parse raw "
+                     "T-SQL/ARM/Automic to derive them.",
+            "ddl": "From Synapse DW: script CREATE TABLE/VIEW for every object into "
+                   "artifacts/DW/<db>/<schema>/{Tables,Views}/<name>.sql.",
+            "connections": "Export Synapse linked services / JDBC connections as "
+                           "connections.csv.",
+            "schedules": "Export Automic (or ADF) triggers as schedules.csv.",
+            "security": "Export SQL logins/AD groups, GRANTs, secret scopes, and "
+                        "classification into artifacts/security/*.",
+            "bi": "Export the Power BI/Tableau/Looker package that reads this DW.",
+        }
+        for entry in m:
+            if entry["kind"] in how:
+                entry["instructions"] = how[entry["kind"]]
+        return m
+
     # ---- 5. dialect translate ---------------------------------------------
     def dialect_translate(self, sql: str) -> str:
         """Assistive T-SQL -> Spark SQL rewrites (agent still verifies)."""

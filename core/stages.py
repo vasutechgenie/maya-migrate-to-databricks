@@ -1,23 +1,31 @@
 """
-stages.py -- the nine-stage MAYA full-lifecycle orchestrator.
+stages.py -- the twelve-stage MAYA full-lifecycle orchestrator.
 
 Wraps the existing deterministic primitives (graph, order, verify, context, maya, bi,
 report) and the stage capabilities into hard-gated stages. Each stage runs its steps,
 evaluates its gate, and the orchestrator refuses to advance past a failed gate. State is
 written to out/stage_state.json.
 
-  0  readiness           collect + classify identity/access/secrets/classification (non-data estate)
-  1  collect + score      graph -> order -> context -> collect assets -> 100% score gate
-  2  replicate            whole-estate test-catalog replication + RI fill
-  3  specs                one branded spec PDF per pipeline
-  4  build + certify      conformance -> swarm build (dev) -> strict topo certification
-  5  bi                   extract -> convert -> parity -> republish -> Genie/Lakeview
-  6  docs + publish        generate docs -> commit back (local for the offline demo)
-  7  identity             UC groups/roles/grants + RLS/CLS masks + secrets + governance (access parity)
-  8  enablement           training + runbooks + cutover/rollback/decommission + day-2 ops (go/no-go)
+  0  readiness             collect + classify identity/access/secrets/classification (non-data estate)
+  1  collect + score        graph -> order -> context -> collect assets -> 100% score gate
+  2  replicate (dev)        test-catalog replication + RI fill on a <=10k sample
+  3  specs                  one branded spec PDF per pipeline
+  4  build + certify (dev)  conformance -> swarm build; dev-certify on the sample (runs clean)
+  5  bi convert (dev)       convert BI queries; dev-certify they run clean on the sample gold
+  6  full load (prod)       backfill the full/historical source data for every pipeline
+  7  build + certify (prod) strict topological certification to 100% parity on real data
+  8  bi parity + publish    parity vs source on full gold -> republish -> Genie/Lakeview
+  9  docs + publish          generate docs -> commit back (local for the offline demo)
+  10 identity               UC groups/roles/grants + RLS/CLS masks + secrets + governance (access parity)
+  11 enablement             training + runbooks + cutover/rollback/decommission + day-2 ops (go/no-go)
 
-Stages 1-6 are unchanged; 0/7/8 are additive. Nothing here overwrites the existing verbs;
-they remain usable directly as primitives.
+Dev and prod are two phases of the SAME code (pipelines AND BI). Stage 4 builds + dev-
+certifies the converted SQL on the sample and stage 5 dev-certifies the converted BI
+queries on that sample gold; stage 7 runs the identical pipeline code against the full/
+historical data (stage 6) and certifies real parity, then stage 8 parity-certifies +
+publishes the identical BI queries. The prod fix-loop persists pipeline repairs back to
+the single source of truth so the two phases never diverge. Nothing here overwrites the
+existing verbs; they remain usable directly as primitives.
 """
 from __future__ import annotations
 
@@ -41,11 +49,11 @@ from . import identity as identity_mod
 from . import enablement as enablement_mod
 
 
-def _stage0(cfg) -> dict:
+def _stage0(cfg, progress=None) -> dict:
     return readiness_mod.run(cfg)
 
 
-def _stage1(cfg) -> dict:
+def _stage1(cfg, progress=None) -> dict:
     adapter = cfg.load_adapter()
     adapter.build_graph()
     order_mod.run(cfg)
@@ -57,60 +65,91 @@ def _stage1(cfg) -> dict:
     return score_mod.run(cfg)
 
 
-def _stage2(cfg) -> dict:
+def _stage2(cfg, progress=None) -> dict:
     return replicate_mod.run(cfg)
 
 
-def _stage3(cfg) -> dict:
+def _stage3(cfg, progress=None) -> dict:
     return spec_mod.run(cfg)
 
 
-def _stage4(cfg) -> dict:
+def _stage4(cfg, progress=None) -> dict:
+    """Build + certify (dev): conformance, then the swarm builds every pipeline and
+    dev-certifies it on the sample (schema/keys/RI/idempotency). No prod parity yet --
+    that is stage 6, which runs this same authored code against the full data."""
     conf = conformance_mod.run(cfg)
     if not conf.get("passed"):
-        return {"stage": 4, "passed": False, "conformance": conf}
-    build = orch.build_swarm(cfg)
-    if not build.get("passed"):
-        return {"stage": 4, "passed": False, "conformance": conf, "build": build}
-    cert = orch.certify_swarm(cfg)
+        return {"stage": 4, "passed": False, "phase": "dev", "conformance": conf}
+    build = orch.build_swarm(cfg, progress=progress)
+    return {"stage": 4, "passed": bool(build.get("passed")), "phase": "dev",
+            "conformance": conf, "build": build}
+
+
+def _stage5(cfg, progress=None) -> dict:
+    """BI convert + dev-certify: convert the BI queries and prove they run clean on the
+    dev/sample gold produced by stage 4. No source parity or republish yet -- that is the
+    prod BI stage (8), which parity-checks + publishes the SAME converted queries."""
+    return bi_mod.run(cfg, phase="dev")
+
+
+def _stage6(cfg, progress=None) -> dict:
+    """Full load + historical (prod): backfill the full/historical source estate. Offline
+    this reuses the deterministic replication (same manifest) tagged as the prod phase; a
+    live project loads the real full source into the test schema before prod certification."""
+    gate = replicate_mod.run(cfg)
+    return {"stage": 6, "passed": bool(gate.get("passed")), "phase": "prod",
+            "data_mode": "full", "replicate": gate,
+            "tables": gate.get("tables"), "views": gate.get("views"),
+            "replicated": gate.get("replicated")}
+
+
+def _stage7(cfg, progress=None) -> dict:
+    """Build + certify (prod): strict topological certification of the SAME authored code
+    (from stage 4) against the full/historical data, to 100% parity. Drift triggers the
+    fix-vs-original loop; the repaired code is the single source of truth for both phases."""
+    cert = orch.certify_swarm(cfg, progress=progress)
     gates = json.load(open(cfg.out("gates.json"))) if os.path.exists(
         cfg.out("gates.json")) else {}
     waves = {r["pipeline"]: orch._wave(r["wave"]) for r in orch.load_index(cfg)}
     system = val.system_certification(gates, waves=waves)
-    return {"stage": 4, "passed": bool(cert.get("passed")),
-            "conformance": conf, "build": build, "certify": cert,
-            "system": system}
+    return {"stage": 7, "passed": bool(cert.get("passed")), "phase": "prod",
+            "certify": cert, "system": system}
 
 
-def _stage5(cfg) -> dict:
-    return bi_mod.run(cfg)
+def _stage8(cfg, progress=None) -> dict:
+    """BI parity + publish (prod): parity-check the converted BI queries against the full
+    gold vs the real source, then republish + build Genie/Lakeview."""
+    return bi_mod.run(cfg, phase="prod")
 
 
-def _stage6(cfg) -> dict:
+def _stage9(cfg, progress=None) -> dict:
     d = docs_mod.run(cfg)
     p = publish_mod.run(cfg)
-    return {"stage": 6, "passed": bool(d.get("passed") and p.get("passed")),
+    return {"stage": 9, "passed": bool(d.get("passed") and p.get("passed")),
             "docs": d, "publish": p}
 
 
-def _stage7(cfg) -> dict:
+def _stage10(cfg, progress=None) -> dict:
     return identity_mod.run(cfg)
 
 
-def _stage8(cfg) -> dict:
+def _stage11(cfg, progress=None) -> dict:
     return enablement_mod.run(cfg)
 
 
 STAGES: Dict[int, tuple] = {
     0: ("readiness", _stage0),
     1: ("collect+score", _stage1),
-    2: ("replicate", _stage2),
+    2: ("replicate-dev", _stage2),
     3: ("specs", _stage3),
-    4: ("conformance+build+certify", _stage4),
-    5: ("bi", _stage5),
-    6: ("docs+publish", _stage6),
-    7: ("identity+security+governance", _stage7),
-    8: ("enablement+go-live", _stage8),
+    4: ("build+certify-dev", _stage4),
+    5: ("bi-convert-dev", _stage5),
+    6: ("full-load+historical-prod", _stage6),
+    7: ("build+certify-prod", _stage7),
+    8: ("bi-parity+publish-prod", _stage8),
+    9: ("docs+publish", _stage9),
+    10: ("identity+security+governance", _stage10),
+    11: ("enablement+go-live", _stage11),
 }
 
 
@@ -134,8 +173,11 @@ def _save_state(cfg, state: dict):
         json.dump(state, f, indent=1)
 
 
-def run_stage(cfg, n: int, enforce_prev: bool = True) -> dict:
-    """Run one stage. If enforce_prev, refuse unless stages before n have passed."""
+def run_stage(cfg, n: int, enforce_prev: bool = True, progress=None) -> dict:
+    """Run one stage. If enforce_prev, refuse unless stages before n have passed.
+
+    An optional `progress` callback receives per-wave/per-pipeline events (Stage 4).
+    """
     if n not in STAGES:
         lo, hi = min(STAGES), max(STAGES)
         raise ValueError(f"unknown stage {n} (expected {lo}..{hi})")
@@ -145,7 +187,7 @@ def run_stage(cfg, n: int, enforce_prev: bool = True) -> dict:
                 "error": f"gate not satisfied: stage {n-1} has not passed "
                          f"(last_passed={state.get('last_passed', -1)})"}
     name, fn = STAGES[n]
-    gate = fn(cfg)
+    gate = fn(cfg, progress=progress)
     gate.setdefault("name", name)
     state["stages"][str(n)] = gate
     if gate.get("passed"):
@@ -155,12 +197,12 @@ def run_stage(cfg, n: int, enforce_prev: bool = True) -> dict:
     return gate
 
 
-def run_all(cfg) -> dict:
-    """Run every stage in order (0..8), stopping at the first failed gate."""
+def run_all(cfg, progress=None) -> dict:
+    """Run every stage in order (0..11), stopping at the first failed gate."""
     state = {"stages": {}, "last_passed": -1}
     _save_state(cfg, state)
     for n in sorted(STAGES):
-        gate = run_stage(cfg, n, enforce_prev=False)
+        gate = run_stage(cfg, n, enforce_prev=False, progress=progress)
         state = _load_state(cfg)
         if not gate.get("passed"):
             state["stopped_at"] = n

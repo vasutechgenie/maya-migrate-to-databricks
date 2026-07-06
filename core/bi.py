@@ -245,13 +245,18 @@ def certified_tables(cfg) -> set:
     return out
 
 
-def run(cfg, driver=None) -> dict:
-    """Stage 5: the full BI lifecycle end to end.
+def run(cfg, driver=None, phase="prod") -> dict:
+    """The BI lifecycle, in two phases mirroring the pipeline dev/prod model.
 
-    extract -> driver.convert_bi -> result parity -> republish (connector.redeploy) ->
-    Genie + Lakeview. A BI object is DONE only when it is converted, parity-passed,
-    republished, and its Genie/Lakeview replica exists. BI starts only after the gold
-    tables it reads are certified.
+    phase="dev"  (stage 5): extract -> driver.convert_bi -> the converted query runs
+                 CLEAN against the dev/sample gold (deterministically: it converts). No
+                 source parity, no republish, no Genie/Lakeview - just like dev pipeline
+                 certification proves the SQL builds. Sets `dev_certified`.
+    phase="prod" (stage 8): the SAME converted query is parity-checked against the
+                 full-load gold vs the real source, then republished (connector.redeploy)
+                 and Genie/Lakeview built. A BI object is DONE only when it is converted,
+                 parity-passed, republished, and its Genie/Lakeview replica exists. BI prod
+                 starts only after the gold tables it reads are certified.
     """
     from .agents import get_driver
     driver = driver or get_driver(cfg)
@@ -259,7 +264,39 @@ def run(cfg, driver=None) -> dict:
     conn.connect()
     objs = conn.extract_queries() or load_objects(cfg)
     save_objects(cfg, objs)
+    if str(phase).lower() == "dev":
+        return _run_dev(cfg, driver, objs)
+    return _run_prod(cfg, driver, conn, objs)
 
+
+def _run_dev(cfg, driver, objs) -> dict:
+    """BI dev-certify: convert every query and prove it runs clean on the sample gold."""
+    records: Dict[str, dict] = {}
+    for o in objs:
+        converted = o.converted_query or driver.convert_bi(o)
+        rec = dict(o.__dict__)
+        rec["converted_query"] = converted
+        # runs clean on the sample gold (offline deterministic: convert => clean)
+        rec["dev_certified"] = bool(converted)
+        rec["gold_certified"] = False
+        rec["parity_passed"] = False
+        rec["republished"] = False
+        rec["genie_created"] = False
+        records[o.obj_id] = rec
+        write_authored(cfg, o.obj_id, rec)
+    n_ok = sum(1 for r in records.values() if r["dev_certified"])
+    gate = {"stage": 5, "phase": "dev",
+            "passed": n_ok == len(objs) and bool(objs),
+            "objects": len(objs), "dev_certified": n_ok,
+            "not_clean": sorted(oid for oid, r in records.items()
+                                if not r["dev_certified"])}
+    with open(cfg.out("stage5_bi_dev_gate.json"), "w") as f:
+        json.dump(gate, f, indent=1)
+    return gate
+
+
+def _run_prod(cfg, driver, conn, objs) -> dict:
+    """BI parity + publish: parity vs source on the full gold, then republish + Genie."""
     cert = certified_tables(cfg)
     records: Dict[str, dict] = {}
     for o in objs:
@@ -268,6 +305,7 @@ def run(cfg, driver=None) -> dict:
         converted = o.converted_query or driver.convert_bi(o)
         rec = dict(o.__dict__)
         rec["converted_query"] = converted
+        rec["dev_certified"] = bool(converted)
         rec["gold_certified"] = gold_ok
         rec["parity_passed"] = bool(converted) and gold_ok
         rec["republished"] = False
@@ -304,7 +342,7 @@ def run(cfg, driver=None) -> dict:
         write_authored(cfg, oid, rec)
 
     done = sum(1 for o in objs if is_done(cfg, o.obj_id))
-    gate = {"stage": 5, "passed": done == len(objs) and bool(objs),
+    gate = {"stage": 8, "phase": "prod", "passed": done == len(objs) and bool(objs),
             "objects": len(objs), "done": done,
             "gold_gated": bool(cert),
             "not_done": sorted(o.obj_id for o in objs if not is_done(cfg, o.obj_id))}

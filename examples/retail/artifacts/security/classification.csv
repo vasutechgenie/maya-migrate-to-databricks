@@ -1,0 +1,6 @@
+table,column,classification,mask
+stg.customers,customer_name,PII,name
+stg.customers,email,PII,email
+stg.customers,phone,PII,phone
+core.dim_customer,customer_name,PII,name
+core.dim_customer,email,PII,email
