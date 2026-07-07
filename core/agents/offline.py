@@ -8,7 +8,7 @@ schema, so MAYA-Dev parity passes by construction. This is what makes the bundle
 Northwind demo runnable end to end without any external service.
 
 It is intentionally faithful, not clever: the point is a reproducible, offline path
-that exercises the whole six-stage flow. Real projects use the cursor driver.
+that exercises the whole twelve-stage flow. Real projects use the cursor driver.
 """
 from __future__ import annotations
 

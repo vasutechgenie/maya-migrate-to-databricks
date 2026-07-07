@@ -64,10 +64,10 @@ agents:
   model: composer-2.5
   concurrency: 6
   max_fix_iters: 5
-  publish_remote: false          # Stage 6: local commit only for the demo (no push)
+  publish_remote: false          # Stage 9: local commit only for the demo (no push)
   publish_branch: main
 
-# Stage 0 + 7 - identity, access, secrets, classification, governance.
+# Stage 0 + 10 - identity, access, secrets, classification, governance.
 # The source estate (principals, grants, secrets, classification) is exported by the
 # adapter from examples/northwind/artifacts/security/*; these settings drive how it is
 # translated into Unity Catalog at cutover.
@@ -95,7 +95,7 @@ governance:
     Customer 360: Unified per-customer view across sales and web behavior
     Gold mart: Curated, business-ready aggregate table
 
-# Stage 8 - enablement + day-2 operations. (audiences omitted -> sensible defaults:
+# Stage 11 - enablement + day-2 operations. (audiences omitted -> sensible defaults:
 # engineer / analyst / steward / ops.)
 enablement: {}
 

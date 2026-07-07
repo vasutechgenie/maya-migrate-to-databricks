@@ -1,27 +1,29 @@
 # MAYA - Migration Accelerator
-# Common developer tasks. `make demo` runs the full nine-stage flow on the Northwind
+# Common developer tasks. `make demo` runs the full twelve-stage flow on the Northwind
 # example with the deterministic offline agent driver (zero external calls).
 CONFIG ?= examples/northwind/northwind.yaml
 PY ?= python3
 
 .PHONY: help demo \
-	stage0 stage1 stage2 stage3 stage4 stage5 stage6 stage7 stage8 \
+	stage0 stage1 stage2 stage3 stage4 stage5 stage6 stage7 stage8 stage9 stage10 stage11 \
 	graph order verify context orchestrate sample validate certify report bi \
 	readiness score replicate specs build docs publish identity enablement \
 	run test figures clean
 
 help:
 	@echo "MAYA targets:"
-	@echo "  make demo      - run the full nine-stage flow on Northwind (offline driver)"
-	@echo "  make stage0..8 - run an individual stage"
-	@echo "  make test      - run the pytest suite"
-	@echo "  make figures   - regenerate blog figures (needs Pillow)"
-	@echo "  make report    - build the branded PDF report only"
-	@echo "  make clean     - remove generated demo outputs"
+	@echo "  make demo       - run the full twelve-stage flow on Northwind (offline driver)"
+	@echo "  make stage0..11 - run an individual stage"
+	@echo "  make test       - run the pytest suite"
+	@echo "  make figures    - regenerate blog figures (needs Pillow)"
+	@echo "  make report     - build the branded PDF report only"
+	@echo "  make clean      - remove generated demo outputs"
 	@echo ""
-	@echo "  Nine stages: 0 readiness  1 collect+score  2 replicate  3 specs"
-	@echo "               4 conformance+build+certify  5 BI  6 docs+publish"
-	@echo "               7 identity+security+governance  8 enablement+go-live"
+	@echo "  Twelve stages: 0 readiness  1 collect+score  2 replicate (dev)  3 specs"
+	@echo "                 4 build+certify (dev)  5 BI convert (dev)"
+	@echo "                 6 full load (prod)  7 build+certify (prod)"
+	@echo "                 8 BI parity+publish (prod)  9 docs+publish"
+	@echo "                 10 identity+security+governance  11 enablement+go-live"
 	@echo "  Primitives (still usable directly): graph order verify context"
 	@echo "               orchestrate sample validate certify report bi"
 
@@ -29,9 +31,9 @@ help:
 demo:
 	$(PY) cli.py run --stage all --config $(CONFIG)
 	@echo ""
-	@echo "MAYA nine-stage demo complete. Artifacts in examples/northwind/out/"
+	@echo "MAYA twelve-stage demo complete. Artifacts in examples/northwind/out/"
 
-# ---- the nine stages -----------------------------------------------------
+# ---- the twelve stages ---------------------------------------------------
 stage0:
 	$(PY) cli.py run --stage 0 --config $(CONFIG)
 
@@ -58,6 +60,15 @@ stage7:
 
 stage8:
 	$(PY) cli.py run --stage 8 --config $(CONFIG)
+
+stage9:
+	$(PY) cli.py run --stage 9 --config $(CONFIG)
+
+stage10:
+	$(PY) cli.py run --stage 10 --config $(CONFIG)
+
+stage11:
+	$(PY) cli.py run --stage 11 --config $(CONFIG)
 
 # ---- stage-command aliases ----------------------------------------------
 readiness:

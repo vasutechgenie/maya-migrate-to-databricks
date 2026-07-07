@@ -1,5 +1,5 @@
 """
-identity.py -- Stage 7: identity, security & governance cutover into Unity Catalog.
+identity.py -- Stage 10: identity, security & governance cutover into Unity Catalog.
 
 Takes the estate collected in Stage 0 and deterministically authors the Unity Catalog
 security model that must exist before go-live, then proves it matches the source:
@@ -16,7 +16,7 @@ agents.driver: cursor the same plan can be applied by the agent swarm.
 
 Access-parity gate: every source grant is mapped 1:1 to a UC grant (no missing / extra),
 every sensitive column has a mask, every declared row policy has a filter, and every
-active credential has a secret scope. Emits out/stage7_identity.sql + out/stage7_gate.json.
+active credential has a secret scope. Emits out/stage10_identity.sql + out/stage10_gate.json.
 """
 from __future__ import annotations
 
@@ -218,7 +218,7 @@ def run(cfg) -> dict:
     gov_stmts = _governance_sql(cfg, schemas)
 
     sql = "\n".join([
-        f"-- MAYA Stage 7: identity, security & governance for {cfg.project_name}",
+        f"-- MAYA Stage 10: identity, security & governance for {cfg.project_name}",
         f"-- target catalog: {_target_catalog(cfg)}",
         "",
         "-- === Identity ===",
@@ -241,7 +241,7 @@ def run(cfg) -> dict:
         *(gov_stmts or ["-- (no governance declared)"]),
         "",
     ])
-    with open(cfg.out("stage7_identity.sql"), "w") as f:
+    with open(cfg.out("stage10_identity.sql"), "w") as f:
         f.write(sql)
 
     # ---- gate: access parity + full coverage ----------------------------
@@ -265,7 +265,7 @@ def run(cfg) -> dict:
         and not unsecured
     )
     gate = {
-        "stage": 7,
+        "stage": 10,
         "passed": passed,
         "groups": sum(1 for p in principals if p.get("type") == "group"),
         "service_principals": sum(1 for p in principals
@@ -279,8 +279,8 @@ def run(cfg) -> dict:
         "secrets": len(secrets),
         "unsecured_connections": unsecured,
         "unmasked_pii": sorted(unmasked),
-        "sql": cfg.out("stage7_identity.sql"),
+        "sql": cfg.out("stage10_identity.sql"),
     }
-    with open(cfg.out("stage7_gate.json"), "w") as f:
+    with open(cfg.out("stage10_gate.json"), "w") as f:
         json.dump(gate, f, indent=1)
     return gate

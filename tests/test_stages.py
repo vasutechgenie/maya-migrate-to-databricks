@@ -60,24 +60,24 @@ def test_stage0_gate_fails_on_unknown_principal(tmp_path):
     assert "ghost_group" in gate["unknown_principals"]
 
 
-def test_stage7_identity_access_parity(staged):
+def test_stage10_identity_access_parity(staged):
     cfg, _ = staged
-    gate = json.load(open(cfg.out("stage7_gate.json")))
+    gate = json.load(open(cfg.out("stage10_gate.json")))
     assert gate["passed"] is True
     assert gate["grants_mapped"] == gate["grants_total"] == 17
     assert gate["masked_columns"] == 2 and gate["row_filters"] == 1
     assert gate["secrets"] == 4 and gate["secret_scope"] == "nw_secrets"
     assert gate["unmasked_pii"] == [] and gate["unsecured_connections"] == []
-    sql = open(cfg.out("stage7_identity.sql")).read()
+    sql = open(cfg.out("stage10_identity.sql")).read()
     assert "GRANT ALL PRIVILEGES ON SCHEMA nw_sit.src TO `nw_engineers`;" in sql
     assert "SET MASK nw_sit.masks.mask_name" in sql
     assert "SET ROW FILTER" in sql
     assert "ALTER SCHEMA nw_sit.rdm SET TAGS ('layer' = 'gold');" in sql
 
 
-def test_stage8_enablement_go_no_go(staged):
+def test_stage11_enablement_go_no_go(staged):
     cfg, _ = staged
-    gate = json.load(open(cfg.out("stage8_gate.json")))
+    gate = json.load(open(cfg.out("stage11_gate.json")))
     assert gate["passed"] is True
     assert gate["training_packs"] == 4 and gate["runbooks"] == 3
     assert gate["monitors"] == 5 and gate["alerts"] == 3
@@ -198,9 +198,9 @@ def test_stage8_bi_done(staged):
     assert gate["done"] == gate["objects"] == 2
 
 
-def test_stage6_docs_generated(staged):
+def test_stage9_docs_generated(staged):
     cfg, _ = staged
-    gate = json.load(open(cfg.out("stage6_docs.json")))
+    gate = json.load(open(cfg.out("stage9_docs.json")))
     assert gate["passed"] is True
     root = gate["root"]
     assert os.path.exists(os.path.join(root, "index.md"))

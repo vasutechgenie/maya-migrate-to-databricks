@@ -57,7 +57,7 @@ def index_by_pipeline(built):
 
 @pytest.fixture(scope="session")
 def staged(tmp_path_factory):
-    """Run the whole six-stage flow once with the offline driver; return (cfg, state)."""
+    """Run the whole twelve-stage flow once with the offline driver; return (cfg, state)."""
     from core import stages as stages_mod
     cfg = _load_cfg(tmp_path_factory.mktemp("nw_staged"))
     state = stages_mod.run_all(cfg)

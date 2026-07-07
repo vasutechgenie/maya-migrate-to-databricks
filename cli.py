@@ -244,7 +244,7 @@ def cmd_readiness(args):
 def cmd_identity(args):
     cfg = _cfg(args)
     g = identity_mod.run(cfg)
-    print(f"identity (Stage 7): {'PASS' if g['passed'] else 'FAIL'}")
+    print(f"identity (Stage 10): {'PASS' if g['passed'] else 'FAIL'}")
     print(f"  grants mapped: {g['grants_mapped']}/{g['grants_total']}, "
           f"masked columns: {g['masked_columns']}, row filters: {g['row_filters']}")
     print(f"  secret scope: {g['secret_scope']} ({g['secrets']} secrets) -> {g['sql']}")
@@ -258,7 +258,7 @@ def cmd_identity(args):
 def cmd_enablement(args):
     cfg = _cfg(args)
     g = enablement_mod.run(cfg)
-    print(f"enablement (Stage 8): {'PASS' if g['passed'] else 'FAIL'}")
+    print(f"enablement (Stage 11): {'PASS' if g['passed'] else 'FAIL'}")
     print(f"  training packs: {g['training_packs']}, runbooks: {g['runbooks']}, "
           f"monitors: {g['monitors']}, alerts: {g['alerts']}")
     for c in g.get("go_no_go", []):
@@ -325,7 +325,7 @@ def cmd_build(args):
 def cmd_docs(args):
     cfg = _cfg(args)
     g = docs_mod.run(cfg)
-    print(f"docs (Stage 6): {'PASS' if g['passed'] else 'FAIL'} - "
+    print(f"docs (Stage 9): {'PASS' if g['passed'] else 'FAIL'} - "
           f"{g['pipelines']} pipelines, {g['tables']} tables, {g['views']} views, "
           f"{g['bi']} BI -> {g['root']}")
     sys.exit(0 if g["passed"] else 1)
@@ -337,7 +337,7 @@ def cmd_publish(args):
     if not g.get("passed"):
         print(f"publish: FAIL ({g.get('error', '')})")
         sys.exit(1)
-    print(f"publish (Stage 6): {g['files']} doc files; committed={g['committed']} "
+    print(f"publish (Stage 9): {g['files']} doc files; committed={g['committed']} "
           f"pushed={g['pushed']} (remote_enabled={g['remote_enabled']})")
 
 
@@ -368,7 +368,8 @@ def cmd_bi(args):
     cfg = _cfg(args)
     if args.bi_cmd == "run":
         g = bi_mod.run(cfg)
-        print(f"bi run (Stage 5): {'PASS' if g['passed'] else 'FAIL'} - "
+        _bi_stage = "5 dev" if g.get("phase") == "dev" else "8 prod"
+        print(f"bi run (Stage {_bi_stage}): {'PASS' if g['passed'] else 'FAIL'} - "
               f"{g['done']}/{g['objects']} objects DONE "
               f"(gold-gated={g['gold_gated']})")
         if g["not_done"]:
@@ -520,22 +521,22 @@ def build_parser():
     add_common(bd)
     bd.set_defaults(func=cmd_build)
 
-    dc = sub.add_parser("docs", help="Stage 6: generate full migration docs")
+    dc = sub.add_parser("docs", help="Stage 9: generate full migration docs")
     add_common(dc)
     dc.set_defaults(func=cmd_docs)
 
-    pub = sub.add_parser("publish", help="Stage 6: commit generated docs back to repo")
+    pub = sub.add_parser("publish", help="Stage 9: commit generated docs back to repo")
     add_common(pub)
     pub.add_argument("--message", help="commit message")
     pub.set_defaults(func=cmd_publish)
 
     idn = sub.add_parser("identity",
-                         help="Stage 7: UC groups/grants + masks + secrets + governance")
+                         help="Stage 10: UC groups/grants + masks + secrets + governance")
     add_common(idn)
     idn.set_defaults(func=cmd_identity)
 
     en = sub.add_parser("enablement",
-                        help="Stage 8: training + runbooks + cutover/rollback + day-2 ops")
+                        help="Stage 11: training + runbooks + cutover/rollback + day-2 ops")
     add_common(en)
     en.set_defaults(func=cmd_enablement)
 

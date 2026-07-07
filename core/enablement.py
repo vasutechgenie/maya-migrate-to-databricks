@@ -1,7 +1,7 @@
 """
-enablement.py -- Stage 8: enablement, go-live, and day-2 operations.
+enablement.py -- Stage 11: enablement, go-live, and day-2 operations.
 
-The last mile of a real migration is not data - it is people and operations. Stage 8
+The last mile of a real migration is not data - it is people and operations. Stage 11
 generates everything a program needs to actually cut over and run:
 
   * role-based training packs (engineer / analyst / steward / ops)
@@ -13,7 +13,7 @@ It then runs a go/no-go gate that refuses go-live unless every upstream gate is 
 (readiness, data certification, BI, docs, identity) and every required artifact exists,
 and finally performs the consolidated docs publish (data + identity + enablement).
 
-Emits out/enablement/** and out/stage8_gate.json. Offline it writes files and does a
+Emits out/enablement/** and out/stage11_gate.json. Offline it writes files and does a
 local commit only (no push), so the whole flow runs with zero external calls.
 """
 from __future__ import annotations
@@ -160,9 +160,9 @@ def _gen_cutover(cfg):
         f"# Cutover plan - {cfg.project_name}", "",
         "## Preconditions (all must be green)", "",
         "- Stage 0 readiness gate passed (identity, access, secrets, classification).",
-        "- Data estate CERTIFIED (MAYA dev -> SIT -> soak) - Stages 1-4.",
-        "- BI layer migrated and parity-verified - Stage 5.",
-        "- Identity/security/governance applied - Stage 7.",
+        "- Data estate CERTIFIED (dev build+certify, full load, prod certify) - Stages 4, 6, 7.",
+        "- BI layer dev-certified (Stage 5) and prod parity-verified + republished (Stage 8).",
+        "- Identity/security/governance applied - Stage 10.",
         "", "## Cutover sequence", "",
         "1. Freeze source writes for the cutover window.",
         "2. Final incremental load + final MAYA-SIT parity per wave (topological order).",
@@ -231,17 +231,17 @@ def _consolidated_publish(cfg, training, runbooks) -> dict:
     root = cfg.out(os.path.join("docs", "generated"))
     os.makedirs(root, exist_ok=True)
 
-    s7 = _load_json(cfg.out("stage7_gate.json"), {})
+    s10 = _load_json(cfg.out("stage10_gate.json"), {})
     id_lines = ["# Identity, security & governance", "",
-                f"- Groups: {s7.get('groups', '?')}, "
-                f"service principals: {s7.get('service_principals', '?')}",
-                f"- Grants mapped: {s7.get('grants_mapped', '?')}/"
-                f"{s7.get('grants_total', '?')}",
-                f"- Masked columns: {s7.get('masked_columns', '?')}, "
-                f"row filters: {s7.get('row_filters', '?')}",
-                f"- Secret scope: `{s7.get('secret_scope', '?')}` "
-                f"({s7.get('secrets', '?')} secrets)",
-                "", "See `stage7_identity.sql` for the full DDL."]
+                f"- Groups: {s10.get('groups', '?')}, "
+                f"service principals: {s10.get('service_principals', '?')}",
+                f"- Grants mapped: {s10.get('grants_mapped', '?')}/"
+                f"{s10.get('grants_total', '?')}",
+                f"- Masked columns: {s10.get('masked_columns', '?')}, "
+                f"row filters: {s10.get('row_filters', '?')}",
+                f"- Secret scope: `{s10.get('secret_scope', '?')}` "
+                f"({s10.get('secrets', '?')} secrets)",
+                "", "See `stage10_identity.sql` for the full DDL."]
     _write(os.path.join(root, "identity", "index.md"), "\n".join(id_lines))
 
     en_lines = ["# Enablement, cutover & operations", "",
@@ -281,13 +281,15 @@ def run(cfg) -> dict:
     checks = [
         ("readiness (Stage 0)",
          _load_json(cfg.out("stage0_gate.json"), {}).get("passed") is True),
-        ("data certified (Stages 1-4)", data_certified),
-        ("BI migrated (Stage 5)",
+        ("data certified (Stages 4, 6, 7)", data_certified),
+        ("BI dev-certified (Stage 5)",
+         _load_json(cfg.out("stage5_bi_dev_gate.json"), {}).get("passed") is True),
+        ("BI parity + republished (Stage 8)",
          _load_json(cfg.out("stage5_bi_gate.json"), {}).get("passed") is True),
-        ("docs generated (Stage 6)",
-         _load_json(cfg.out("stage6_docs.json"), {}).get("passed") is True),
-        ("identity/security (Stage 7)",
-         _load_json(cfg.out("stage7_gate.json"), {}).get("passed") is True),
+        ("docs generated (Stage 9)",
+         _load_json(cfg.out("stage9_docs.json"), {}).get("passed") is True),
+        ("identity/security (Stage 10)",
+         _load_json(cfg.out("stage10_gate.json"), {}).get("passed") is True),
         ("enablement artifacts", artifacts_ok),
     ]
     go_no_go = [{"item": name, "ok": bool(ok)} for name, ok in checks]
@@ -296,7 +298,7 @@ def run(cfg) -> dict:
     pub = _consolidated_publish(cfg, training, runbooks)
 
     gate = {
-        "stage": 8,
+        "stage": 11,
         "passed": bool(passed),
         "training_packs": len(training),
         "runbooks": len(runbooks),
@@ -309,6 +311,6 @@ def run(cfg) -> dict:
         "published": bool(pub.get("passed")),
         "dir": d,
     }
-    with open(cfg.out("stage8_gate.json"), "w") as f:
+    with open(cfg.out("stage11_gate.json"), "w") as f:
         json.dump(gate, f, indent=1)
     return gate
