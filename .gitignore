@@ -51,6 +51,7 @@ blog/publish_pack/
 # generated book/value-brief HTML (base64-embedded; regenerate from *_content.py)
 book/book.html
 book/value_brief.html
+book/story.html
 
 # os / editor
 .DS_Store

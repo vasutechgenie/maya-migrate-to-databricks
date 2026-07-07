@@ -343,6 +343,30 @@ def cmd_publish(args):
 
 def cmd_run(args):
     cfg = _cfg(args)
+    scope = getattr(args, "scope", "all") or "all"
+    if scope != "all":
+        # run ONLY the BI and/or downstream-app layer on an already-certified estate;
+        # no pipeline is re-created (out/stage_state.json pipeline gates are preserved).
+        if not stages_mod.pipelines_certified(cfg):
+            print("run --scope: data + ETL pipelines are not certified yet; complete "
+                  "the pipeline migration (through Stage 7) before running BI/App layers",
+                  file=sys.stderr)
+            sys.exit(2)
+        state = stages_mod.run_scope(cfg, scope)
+        touched = stages_mod.scope_stages(scope)
+        for n in sorted(touched):
+            g = state["stages"].get(str(n))
+            if g is None:
+                continue
+            tag = "SKIP" if g.get("skipped") else ("PASS" if g.get("passed") else "FAIL")
+            print(f"  stage {n} [{g.get('name','')}]: {tag}")
+        print(f"run --scope {scope}: stopped_at={state.get('stopped_at')}  "
+              f"(pipelines untouched)")
+        ok = all(
+            (state["stages"].get(str(n)) or {}).get("passed", False)
+            or (state["stages"].get(str(n)) or {}).get("skipped", False)
+            for n in touched)
+        sys.exit(0 if ok else 1)
     if args.stage == "all":
         state = stages_mod.run_all(cfg)
         for n in sorted(stages_mod.STAGES):
@@ -544,6 +568,9 @@ def build_parser():
     add_common(rn)
     rn.add_argument("--stage", default="all",
                     help="stage number 0..11, or 'all' (default)")
+    rn.add_argument("--scope", choices=["all", "bi", "apps", "bi_apps"], default="all",
+                    help="run only the BI and/or downstream-app layer on top of an "
+                         "already-certified pipeline estate (no pipeline is rebuilt)")
     rn.set_defaults(func=cmd_run)
     return p
 
