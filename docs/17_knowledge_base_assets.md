@@ -149,10 +149,15 @@ lineage) will not pass - which is why the `graph` export is required.
 
 ### A. Web UI
 
-On a project's Knowledge Base panel: review the tailored export checklist and coverage,
-then drag/drop files or a `.zip` (objects/edges CSV, DDL `.sql`, connections, schedules,
-security, BI package). Click **Regenerate graph** to ingest, then **Lock** to freeze the
-graph. Downstream apps are registered on the Apps page (structured form -> `app.json`).
+On a project's Knowledge Base panel you get a guided **Export & import checklist** - one
+item per asset kind, each with source-aware step-by-step "how to export" directions and a
+copyable command, its own upload control (files the asset under the correct kind), and a
+live status (Not started -> Uploaded -> Parsed / Failed). An overall progress bar and a
+completion banner show when every required item is parsed. A bulk "drop a `.zip` of
+everything" dropzone (auto-classified) is also available. Click **Regenerate graph** to
+ingest, then **Lock** to freeze the graph. Downstream apps are registered on the Apps page
+(structured form -> `app.json`). The per-source export recipes below (section 6) are what
+the checklist surfaces inline.
 
 ### B. REST API
 
