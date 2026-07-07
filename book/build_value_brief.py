@@ -32,9 +32,54 @@ emb, esc = BB.embed, BB.esc
 
 # ---------------------------------------------------------------- extra CSS
 EXTRA_CSS = """
-/* value cover kicker override */
+/* value cover kicker override (legacy) */
 .cover .kickv{ color:#FFD9A8; letter-spacing:.34em; font-weight:700; font-size:16px;
   text-transform:uppercase; }
+
+/* ---- VALUE-BRIEF COVER: light executive "business case" (distinct look) ---- */
+.vcover{ position:absolute; inset:0; overflow:hidden;
+  background:linear-gradient(160deg,#FFFFFF 0%,#FFF7EE 52%,#FFE7D7 100%); }
+.vcover .mesh{ position:absolute; inset:0;
+  background-image:linear-gradient(rgba(251,101,20,.055) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(251,101,20,.055) 1px,transparent 1px);
+  background-size:48px 48px; }
+.vcover .blob{ position:absolute; right:-170px; top:-170px; width:640px; height:640px;
+  border-radius:50%;
+  background:radial-gradient(circle at 32% 32%,#FFD9A8,#FB6514 68%,#F0426B);
+  opacity:.13; }
+.vcover .logos{ position:absolute; top:60px; left:92px; right:92px; display:flex;
+  justify-content:space-between; align-items:center; }
+.vcover .logos img{ height:52px; }
+.vcover .hero{ position:absolute; left:92px; top:236px; max-width:660px; }
+.vcover .kick{ text-transform:uppercase; letter-spacing:.28em; font-weight:800;
+  font-size:16px; color:#B4400F; }
+.vcover h1{ margin:10px 0 0; font-size:122px; line-height:.9; font-weight:900;
+  letter-spacing:-.02em; color:#12203A; }
+.vcover h2{ margin:16px 0 0; font-size:31px; font-weight:700; color:#26344F;
+  max-width:590px; line-height:1.16; }
+.vcover .pill{ display:inline-block; margin-top:26px; padding:13px 26px; border-radius:40px;
+  background:linear-gradient(90deg,#E8A400,#F6B93B); color:#3A2600; font-weight:800;
+  font-size:19px; box-shadow:0 10px 30px rgba(232,164,0,.3); }
+.vcover .stat{ position:absolute; right:104px; top:286px; width:352px; text-align:center;
+  border:1px solid #FBD3BE; border-radius:24px; padding:32px 26px 26px; background:#fff;
+  box-shadow:0 26px 60px rgba(251,101,20,.18); }
+.vcover .stat .big{ font-size:92px; font-weight:900; line-height:.9;
+  background:linear-gradient(92deg,#FB6514,#F0426B);
+  -webkit-background-clip:text; background-clip:text; color:transparent; }
+.vcover .stat .sub{ font-size:17px; font-weight:800; color:#12203A; margin-top:10px; }
+.vcover .stat .bars{ display:flex; gap:12px; align-items:flex-end; justify-content:center;
+  height:96px; margin-top:24px; }
+.vcover .stat .bars i{ width:40px; border-radius:7px 7px 0 0; display:block; }
+.vcover .stat .bars .t{ height:92px; background:linear-gradient(180deg,#C6CFDD,#8794A8); }
+.vcover .stat .bars .m{ height:26px; background:linear-gradient(180deg,#FFB05C,#FB6514); }
+.vcover .stat .cap{ display:flex; gap:12px; justify-content:center; margin-top:8px;
+  font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+  color:#8794A8; }
+.vcover .byline{ position:absolute; left:92px; right:92px; bottom:58px; color:#26344F; }
+.vcover .byline .nm{ font-size:26px; font-weight:900; color:#12203A; }
+.vcover .byline .hl{ font-size:15px; color:#5A6B84; margin-top:3px; max-width:780px; }
+.vcover .byline .ed{ position:absolute; right:0; bottom:2px; font-size:13px; color:#8794A8;
+  letter-spacing:.16em; text-transform:uppercase; }
 
 /* KPI hero */
 .lead{ font-size:21px; line-height:1.5; color:var(--ink2); margin:2px 0 22px; max-width:1040px;}
@@ -153,15 +198,25 @@ def footnote(txt):
 
 # ---------------------------------------------------------------- templates
 def t_cover2(p, n):
+    # light, executive "business case" cover - deliberately unlike the dark book /
+    # comic story covers: white/cream, a savings stat + cost-reduction bars.
     return f"""
-    <div class="cover" style="background-image:url('{emb(VC.BG)}')">
-      <div class="veil"></div>
-      <div class="logos"><img src="{emb(BB.MAYA_T)}"><img src="{emb(BB.NMB_T)}"></div>
+    <div class="vcover">
+      <div class="mesh"></div>
+      <div class="blob"></div>
+      <div class="logos"><img src="{emb('assets/maya-logo.png')}">
+        <img src="{emb('assets/nmb-logo.png')}"></div>
       <div class="hero">
-        <div class="kickv">{esc(VC.KICK)}</div>
+        <div class="kick">{esc(VC.KICK)}</div>
         <h1>MAYA</h1>
         <h2>The Business Case: Supersonic Migrate to Databricks</h2>
         <div class="pill">{esc(VC.SUBTITLE)}</div>
+      </div>
+      <div class="stat">
+        <div class="big">~87%</div>
+        <div class="sub">lower total cost of migration</div>
+        <div class="bars"><i class="t"></i><i class="m"></i></div>
+        <div class="cap"><span>Traditional</span><span>MAYA</span></div>
       </div>
       <div class="byline">
         <div class="nm">{esc(BB.C.AUTHOR)}</div>

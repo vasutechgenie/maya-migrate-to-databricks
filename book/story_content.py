@@ -239,20 +239,30 @@ PAGES = [
      "note": "Selective add-on runs (--scope bi / --scope apps, or the UI add-on "
      "buttons) execute only their layer once the Data + ETL migration is certified."},
 
-    # 14 --- THE WIN: awards gallery ------------------------------------------
-    {"tpl": "awards", "kicker": "The ceremony",
-     "title": "Every round, won",
-     "intro": "Three phases. Three awards. One small team and MAYA - and a migration "
-     "that used to take years, finished in weeks.",
+    # 14 --- THE ARCHITECTURE + THE WIN (awards) ------------------------------
+    {"tpl": "arch", "kicker": "The big picture",
+     "title": "One tiny framework. The whole lift.",
+     "intro": "The legacy warehouse on the left, a shiny Databricks Lakehouse on the "
+     "right - and in between, one small framework moving the data, the dashboards, and "
+     "the apps across, gate by gate.",
+     "legacy": {
+         "h": "Legacy Data Warehouse", "sub": "Slow, costly, hard to change",
+         "chips": ["Synapse", "Snowflake", "Redshift", "Teradata", "Oracle",
+                   "Hadoop / Hive", "SQL Server", "+ dashboards", "+ custom apps"]},
+     "dbx": {
+         "h": "Databricks Lakehouse", "sub": "Governed, fast, future-proof",
+         "chips": ["Unity Catalog", "Delta medallion", "Lakeview + Genie",
+                   "Lakebase (OLTP)", "Databricks Apps", "Certified parity"]},
+     "maya_layers": ["Data + ETL", "BI / Dashboards", "Downstream Apps"],
      "medals": [
-         (H_FOUNDRY, "The Foundry", "Data + ETL certified"),
-         (H_STORYTELLER, "The Storyteller", "BI migrated as an add-on"),
-         (H_BUILDER, "The Builder", "Apps to Lakebase + Databricks Apps"),
-         (H_GUARDIAN, "The Guardian", "Unity Catalog governance + PII"),
-         (H_CHAMPION, "The Champion", "#1 on the open benchmark"),
+         (H_FOUNDRY, "The Foundry"),
+         (H_STORYTELLER, "The Storyteller"),
+         (H_BUILDER, "The Builder"),
+         (H_GUARDIAN, "The Guardian"),
+         (H_CHAMPION, "The Champion"),
      ],
-     "banner": "Same scope. A fraction of the time, team, and cost - proven, "
-     "table-by-table."},
+     "tagline": "Every one of these MAYA Hero Awards belongs to the MAYA framework - "
+     "the tiny framework doing the big lift."},
 
     # 15 --- PROOF: benchmark --------------------------------------------------
     {"tpl": "benchmark", "kicker": "Nelakuditi Migration Benchmark (NMB)",

@@ -84,6 +84,47 @@ ul.body li,ol.body li{ margin:0 0 10px; }
 .footer .dot{ color:var(--orange); }
 .pgnum{ font-weight:700; color:var(--muted); }
 
+/* ---- BOOK COVER: technical blueprint (distinct from photo/comic/light covers) ---- */
+.bcover{ position:absolute; inset:0; overflow:hidden;
+  background:radial-gradient(1200px 820px at 76% 10%,#17335F 0%,#0C1B36 45%,#06112A 100%); }
+.bcover .grid{ position:absolute; inset:0;
+  background-image:linear-gradient(rgba(120,190,255,.10) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(120,190,255,.10) 1px,transparent 1px);
+  background-size:54px 54px; }
+.bcover .grid.fine{ background-image:linear-gradient(rgba(120,190,255,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(120,190,255,.05) 1px,transparent 1px);
+  background-size:18px 18px; }
+.bcover .glow{ position:absolute; right:-160px; top:-140px; width:560px; height:560px;
+  border-radius:50%; background:radial-gradient(circle,#1E63C8 0%,transparent 66%); opacity:.55; }
+.bcover .logos{ position:absolute; top:64px; left:92px; right:92px; display:flex;
+  justify-content:space-between; align-items:center; }
+.bcover .logos img{ height:56px; }
+.bcover .hero{ position:absolute; left:96px; right:96px; top:288px; }
+.bcover .kick{ color:#79D0FF; letter-spacing:.34em; font-weight:800; font-size:16px;
+  text-transform:uppercase; }
+.bcover h1{ margin:12px 0 0; font-size:158px; line-height:.88; font-weight:900;
+  letter-spacing:-.02em; color:rgba(127,209,255,.06); -webkit-text-stroke:2.5px #8ED0FF;
+  text-shadow:0 0 40px rgba(30,99,200,.4); }
+.bcover h2{ margin:20px 0 0; font-size:38px; font-weight:600; color:#EAF3FF;
+  max-width:840px; line-height:1.12; }
+.bcover .pill{ display:inline-block; margin-top:26px; padding:12px 24px; border-radius:8px;
+  background:rgba(20,44,84,.6); border:1.5px solid #4FA8E8; color:#CDE8FF; font-weight:800;
+  font-size:18px; letter-spacing:.02em; }
+.bcover .schema{ position:absolute; left:96px; right:96px; bottom:158px; display:flex;
+  align-items:center; }
+.bcover .node{ border:1.5px solid #7FC7F5; color:#DCEFFF; border-radius:11px;
+  padding:11px 18px; font-size:15px; font-weight:800; background:rgba(18,40,80,.55);
+  white-space:nowrap; }
+.bcover .node.mid{ border-color:#FFB05C; color:#FFE0C2; background:rgba(60,30,10,.5);
+  box-shadow:0 0 0 3px rgba(251,101,20,.25); }
+.bcover .link{ flex:1; height:2px; margin:0 12px;
+  background:repeating-linear-gradient(90deg,#6FB6E8 0 9px,transparent 9px 18px); }
+.bcover .byline{ position:absolute; left:96px; right:96px; bottom:64px; color:#CFE0F5; }
+.bcover .byline .nm{ font-size:26px; font-weight:900; color:#EAF3FF; }
+.bcover .byline .hl{ font-size:15px; color:#9CB6D6; margin-top:3px; max-width:780px; }
+.bcover .byline .ed{ position:absolute; right:0; bottom:2px; font-size:13px; color:#7E97BC;
+  letter-spacing:.16em; text-transform:uppercase; }
+
 /* cover */
 .cover{ position:absolute; inset:0; background-size:cover; background-position:center; }
 .cover .veil{ position:absolute; inset:0;
@@ -265,10 +306,13 @@ def footer(n):
 
 # ---------------------------------------------------------------- templates
 def t_cover(p, n):
-    au = AUTHOR
+    # technical blueprint cover - deliberately unlike the light value-brief and the
+    # bright comic story covers: navy blueprint grid, wireframe MAYA, schematic flow.
     return f"""
-    <div class="cover" style="background-image:url('{embed(C.BG)}')">
-      <div class="veil"></div>
+    <div class="bcover">
+      <div class="grid"></div>
+      <div class="grid fine"></div>
+      <div class="glow"></div>
       <div class="logos">
         <img src="{embed(MAYA_T)}"><img src="{embed(NMB_T)}">
       </div>
@@ -277,6 +321,13 @@ def t_cover(p, n):
         <h1>MAYA</h1>
         <h2>Supersonic Migrate to Databricks Accelerator</h2>
         <div class="pill">{esc(C.SUBTITLE)}</div>
+      </div>
+      <div class="schema">
+        <div class="node">Legacy Warehouse</div>
+        <div class="link"></div>
+        <div class="node mid">MAYA &bull; 12-gate AI swarm</div>
+        <div class="link"></div>
+        <div class="node">Databricks Lakehouse</div>
       </div>
       <div class="byline">
         <div class="nm">{esc(C.AUTHOR)}</div>

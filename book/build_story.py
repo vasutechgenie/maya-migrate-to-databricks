@@ -162,6 +162,49 @@ EXTRA_CSS = """
 .awbanner .em{ background:linear-gradient(92deg,#FFB05C,#F0426B);
   -webkit-background-clip:text; background-clip:text; color:transparent; }
 
+/* architecture: legacy | MAYA | shiny Databricks, + awards below */
+.archrow{ display:flex; align-items:stretch; gap:0; margin-top:4px; }
+.apanel{ flex:1; border-radius:16px; padding:18px 20px; min-height:300px; }
+.apanel .ah{ font-weight:900; font-size:20px; }
+.apanel .asub{ font-size:13px; margin-top:3px; font-weight:700; letter-spacing:.02em; }
+.apanel .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+.apanel .ch{ font-size:13px; font-weight:700; padding:6px 11px; border-radius:8px; }
+.apanel.legacy{ background:linear-gradient(180deg,#F2F4F8,#E7EAF1);
+  border:1px solid #D9DEE8; color:#5A6B84; }
+.apanel.legacy .ah{ color:#3D4A63; }
+.apanel.legacy .asub{ color:#8794A8; }
+.apanel.legacy .ch{ background:#fff; border:1px solid #D9DEE8; color:#5A6B84; }
+.apanel.dbx{ background:linear-gradient(180deg,#FFF6EE,#FFE7DA);
+  border:1px solid #FBD3BE; box-shadow:0 16px 40px rgba(251,101,20,.16); }
+.apanel.dbx .ah{ color:#12203A; }
+.apanel.dbx .asub{ color:#B4400F; }
+.apanel.dbx .ch{ background:#fff; border:1px solid #FBD3BE; color:#B4400F; font-weight:800; }
+.amid{ flex:0 0 214px; display:flex; align-items:center; justify-content:center; }
+.mayacore{ width:186px; border-radius:18px; padding:18px 14px; text-align:center;
+  color:#fff; background:radial-gradient(200px 170px at 50% 22%,#2A3B67,#131E37);
+  box-shadow:0 0 0 3px rgba(251,101,20,.55), 0 18px 44px rgba(18,32,58,.4); }
+.mayacore .lg{ font-size:34px; font-weight:900; letter-spacing:.03em;
+  background:linear-gradient(92deg,#FFB05C,#FB6514 45%,#F0426B);
+  -webkit-background-clip:text; background-clip:text; color:transparent; }
+.mayacore .tiny{ font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+  color:#FFD9A8; margin-top:2px; font-weight:800; }
+.mayacore .layers{ margin-top:12px; display:flex; flex-direction:column; gap:6px; }
+.mayacore .ly{ font-size:12.5px; font-weight:800; padding:6px 8px; border-radius:8px;
+  background:rgba(255,255,255,.12); color:#fff; }
+.mayacore .swarm{ font-size:11px; color:#AEB9CE; margin-top:11px; letter-spacing:.03em; }
+.archarrow{ flex:0 0 44px; display:flex; align-items:center; justify-content:center;
+  font-size:34px; font-weight:900; color:var(--orange); }
+.astrip{ display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-top:20px; }
+.astrip .m{ text-align:center; border:1px solid var(--line); border-radius:13px;
+  padding:8px 8px 10px; background:linear-gradient(180deg,#fff,#FFF7EE); }
+.astrip .m img{ height:98px; width:100%; object-fit:contain; }
+.astrip .m .nm{ font-size:13.5px; font-weight:900; margin-top:2px; color:var(--ink); }
+.archtag{ margin-top:16px; text-align:center; padding:16px 24px; border-radius:14px;
+  background:linear-gradient(92deg,#141F38,#243560); color:#fff; font-size:20px;
+  font-weight:800; box-shadow:0 14px 36px rgba(18,32,58,.24); }
+.archtag .em{ background:linear-gradient(92deg,#FFB05C,#F0426B);
+  -webkit-background-clip:text; background-clip:text; color:transparent; }
+
 /* cta hero strip */
 .cta .herostrip{ display:flex; gap:14px; margin-top:30px; }
 .cta .herostrip img{ height:120px; width:120px; object-fit:contain;
@@ -301,6 +344,45 @@ def t_awards(p, n):
     </div>"""
 
 
+def t_arch(p, n):
+    lg = p["legacy"]
+    dbx = p["dbx"]
+    lg_chips = "".join(f'<span class="ch">{esc(c)}</span>' for c in lg["chips"])
+    dbx_chips = "".join(f'<span class="ch">{esc(c)}</span>' for c in dbx["chips"])
+    layers = "".join(f'<div class="ly">{esc(x)}</div>' for x in p["maya_layers"])
+    medals = "".join(f'<div class="m"><img src="{embed(img)}">'
+                     f'<div class="nm">{esc(nm)}</div></div>' for img, nm in p["medals"])
+    return f"""<div class="pad">
+      {header(p['kicker'], p['title'], small=True)}
+      <div class="cliui-intro">{esc(p['intro'])}</div>
+      <div class="archrow">
+        <div class="apanel legacy">
+          <div class="ah">{esc(lg['h'])}</div>
+          <div class="asub">{esc(lg['sub'])}</div>
+          <div class="chips">{lg_chips}</div>
+        </div>
+        <div class="archarrow">&rarr;</div>
+        <div class="amid">
+          <div class="mayacore">
+            <div class="lg">MAYA</div>
+            <div class="tiny">the tiny framework</div>
+            <div class="layers">{layers}</div>
+            <div class="swarm">AI swarm &bull; 12 gates &bull; parity-certified</div>
+          </div>
+        </div>
+        <div class="archarrow">&rarr;</div>
+        <div class="apanel dbx">
+          <div class="ah">{esc(dbx['h'])}</div>
+          <div class="asub">{esc(dbx['sub'])}</div>
+          <div class="chips">{dbx_chips}</div>
+        </div>
+      </div>
+      <div class="astrip">{medals}</div>
+      <div class="archtag"><span class="em">{esc(p['tagline'])}</span></div>
+      {footer(n)}
+    </div>"""
+
+
 def t_award_cta(p, n):
     cards = ""
     for t, s in p["ctas"]:
@@ -338,6 +420,7 @@ TEMPLATES = {
     "cli_ui": t_cli_ui,
     "award": t_award,
     "awards": t_awards,
+    "arch": t_arch,
     "award_cta": t_award_cta,
     "stages": _wrap(BB.t_stages),
     "figure": _wrap(BB.t_figure),
