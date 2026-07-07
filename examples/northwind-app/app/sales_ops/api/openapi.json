@@ -1,0 +1,24 @@
+{
+  "openapi": "3.0.3",
+  "info": {"title": "Sales Ops Console API", "version": "1.0.0"},
+  "paths": {
+    "/api/orders": {
+      "get": {
+        "summary": "Live orders queue",
+        "responses": {"200": {"description": "List of daily order rollups"}}
+      }
+    },
+    "/api/customers": {
+      "get": {
+        "summary": "Customer 360 lookup",
+        "responses": {"200": {"description": "Customer 360 records"}}
+      }
+    },
+    "/api/reorder-alerts": {
+      "get": {
+        "summary": "Product reorder alerts",
+        "responses": {"200": {"description": "Products at or below reorder point"}}
+      }
+    }
+  }
+}

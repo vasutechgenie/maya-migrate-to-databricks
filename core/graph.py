@@ -15,6 +15,12 @@ the accelerator operates only on this model, so it is fully source-independent.
 Canonical edge_type vocabulary:
   READS_TABLE, WRITES_TABLE, CALLS_PROC, EXECUTES_PIPELINE, READS_CONFIG,
   MAPS_TO_SOURCE (a.k.a. MAPS_TO_SYNAPSE), INVOKES_EXTERNAL
+
+Downstream-app vocabulary (custom apps migrated to Lakebase + Databricks Apps):
+  object types  : APP, APP_ENTITY, APP_ENDPOINT, APP_SCREEN, LAKEBASE_TABLE
+  edge types    : CONTAINS (app -> child), EXPOSES_ENTITY (endpoint -> entity),
+                  SERVES_SCREEN (endpoint -> screen), POPULATES_ENTITY
+                  (pipeline -> entity), MAPS_TO_SOURCE (entity -> DW table)
 """
 from __future__ import annotations
 
@@ -42,6 +48,19 @@ E_CALLS = "CALLS_PROC"
 E_EXEC = "EXECUTES_PIPELINE"
 E_CONFIG = "READS_CONFIG"
 E_MAPS = {"MAPS_TO_SOURCE", "MAPS_TO_SYNAPSE"}
+
+# downstream-app object types + edge types
+T_APP = "APP"
+T_APP_ENTITY = "APP_ENTITY"
+T_APP_ENDPOINT = "APP_ENDPOINT"
+T_APP_SCREEN = "APP_SCREEN"
+T_LAKEBASE_TABLE = "LAKEBASE_TABLE"
+APP_OBJECT_TYPES = {T_APP, T_APP_ENTITY, T_APP_ENDPOINT, T_APP_SCREEN,
+                    T_LAKEBASE_TABLE}
+E_CONTAINS = "CONTAINS"
+E_EXPOSES = "EXPOSES_ENTITY"
+E_SERVES = "SERVES_SCREEN"
+E_POPULATES = "POPULATES_ENTITY"
 
 
 class Graph:
@@ -109,6 +128,22 @@ class Graph:
             ins |= self.reads.get(pr, set())
             outs |= self.writes.get(pr, set())
         return ins, outs, procs
+
+    # ---- downstream apps ---------------------------------------------------
+    def app_keys(self) -> List[str]:
+        """object_keys of every registered downstream APP node."""
+        return [k for k, o in self.objects.items() if o.get("type") == T_APP]
+
+    def app_children(self, app_key: str, child_type: str = "") -> List[str]:
+        """Children (entities/endpoints/screens) contained by an app node."""
+        out = []
+        for e in self.out_edges.get(app_key, []):
+            if e.get("edge_type") != E_CONTAINS:
+                continue
+            if child_type and e.get("dst_type") != child_type:
+                continue
+            out.append(e.get("dst_key"))
+        return out
 
     # ---- io ----------------------------------------------------------------
     @classmethod

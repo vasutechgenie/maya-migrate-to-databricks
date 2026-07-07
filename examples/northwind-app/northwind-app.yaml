@@ -1,0 +1,87 @@
+# Northwind-App - the runnable MAYA demo for DOWNSTREAM APP migration.
+# A "Sales Ops Console" custom app built on the Northwind DW is registered here and
+# migrated whole -> Databricks Lakebase (OLTP) + Databricks Apps on Unity Catalog,
+# riding the same 12-stage lifecycle as the DW pipelines.
+#
+#   python3 cli.py run --config examples/northwind-app/northwind-app.yaml
+#
+# It reuses the Northwind DW graph (adapter_options.source_dir) and adds an app under
+# examples/northwind-app/app/sales_ops/.
+project_name: northwind_app
+
+adapter: adapters.synapse.adapter.SynapseAdapter
+
+graph_dir: out
+out_dir: out
+specs_dir: out/pipeline_specs
+
+pipeline_types: [PIPELINE, SYNAPSE_PIPELINE]
+table_types: [TABLE, CONFIG_TABLE]
+
+home_database: northwind
+table_max_tb: 2.0
+
+schema_layers:
+  src: bronze
+  sales: silver
+  rdm: gold
+  serving: serving
+  metadata: config
+
+branding:
+  org: MAYA
+  dark: "#1F2430"
+  accent: "#3B4CCA"
+  show_databricks_lockup: true
+
+maya:
+  sample_rows: 10000
+  sampling: ri_preserving
+  seed: 42
+  dev_catalog: nw_dev
+  sit_catalog: nw_sit
+  source_ref_catalog: nw_ref
+  require_both_phases: true
+  require_soak: true
+  soak_windows_days: [7, 14]
+  soak_drift_tolerance: 0.0
+  test_catalog: nw_test
+  synthetic_rows: 10000
+  test_from_source: false
+
+agents:
+  driver: offline
+  model: composer-2.5
+  concurrency: 6
+  max_fix_iters: 5
+  publish_remote: false
+  publish_branch: main
+
+security:
+  target_catalog: nw_sit
+  secret_scope: nw_secrets
+
+governance:
+  owners:
+    src: nw_engineers
+    sales: nw_engineers
+    rdm: nw_stewards
+    serving: nw_stewards
+
+enablement: {}
+
+ops: {}
+
+# Downstream custom apps registered for migration to Lakebase + Databricks Apps.
+apps:
+  - key: sales_ops
+    name: Sales Ops Console
+    owner_team: Sales Operations
+
+adapter_options:
+  source_dir: examples/northwind
+  artifacts_dir: examples/northwind/artifacts
+  bi:
+    system: powerbi
+    workspace: "Northwind BI"
+    package_dir: examples/northwind/bi_export

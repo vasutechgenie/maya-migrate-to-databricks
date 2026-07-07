@@ -28,6 +28,10 @@ ENGINE_LABELS = {
     "E5": "Orchestration: sub-pipeline fan-out",
     "E6": "Utility / Maintenance",
     "E7": "Custom Notebook (framework-invoked fallback)",
+    # ---- downstream-app engines (Lakebase + Databricks Apps) --------------
+    "E8": "Lakebase schema + UC synced tables (OLTP serving)",
+    "E9": "Databricks App backend + API (FastAPI on Apps)",
+    "E10": "App UI (rebuilt screens served by the Databricks App)",
 }
 
 ENGINE_OPS = {
@@ -38,11 +42,22 @@ ENGINE_OPS = {
     "E5": "run_child_jobs",
     "E6": "copy, retention_purge, index_refresh, dedup, noop",
     "E7": "run_notebook",
+    "E8": "lakebase_ddl, synced_table, reverse_etl",
+    "E9": "gen_backend, gen_api, app_yaml, oauth_wire",
+    "E10": "gen_ui, build_ui, screen_parity",
 }
 
 ENGINE_DEFAULT_OP = {
     "E1": "ingest", "E2": "sql_step", "E3": "delta_apply", "E4": "invoke_external",
     "E5": "run_child_jobs", "E6": "utility", "E7": "run_notebook",
+    "E8": "lakebase_ddl", "E9": "gen_backend", "E10": "gen_ui",
+}
+
+# app asset-kind -> the engine that migrates it
+ENGINE_OF_APP_KIND = {
+    "app_model": "E8", "app_etl": "E8",
+    "app_api": "E9", "app_backend": "E9",
+    "app_ui": "E10", "app_screens": "E10",
 }
 
 ENGINE_OF_PATTERN = {

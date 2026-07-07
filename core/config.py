@@ -103,7 +103,7 @@ class Agents:
     model: str = "composer-2.5"          # model id for the cursor driver
     concurrency: int = 6                 # max agents building in parallel within a wave
     max_fix_iters: int = 5               # drift-loop attempts before a pipeline is flagged
-    publish_remote: bool = False         # Stage 6: push docs to GitHub (else local commit)
+    publish_remote: bool = False         # Stage 9: push docs to GitHub (else local commit)
     publish_branch: str = "main"
 
 
@@ -136,11 +136,18 @@ class AcceleratorConfig:
     # free-form adapter-specific settings
     adapter_options: Dict[str, Any] = field(default_factory=dict)
 
-    # ---- full-lifecycle stages (0, 7, 8) settings (free-form) --------------
-    # Stage 0/7: identity, access, secrets, classification, governance.
+    # ---- downstream custom apps (Lakebase + Databricks Apps) --------------
+    # Each entry registers an app built on top of the DW that MAYA migrates whole:
+    # data model -> Lakebase schema, DW ETL -> Lakebase sync, backend/API/UI ->
+    # Databricks App. Populated from the app.json manifests discovered at ingest.
+    #   {key, name, model_dir, etl_dir, api_dir, backend_dir, ui_dir, screens_dir}
+    apps: List[Dict[str, Any]] = field(default_factory=list)
+
+    # ---- full-lifecycle stages (0, 10, 11) settings (free-form) -----------
+    # Stage 0/10: identity, access, secrets, classification, governance.
     security: Dict[str, Any] = field(default_factory=dict)
     governance: Dict[str, Any] = field(default_factory=dict)
-    # Stage 8: enablement/training + day-2 operations.
+    # Stage 11: enablement/training + day-2 operations.
     enablement: Dict[str, Any] = field(default_factory=dict)
     ops: Dict[str, Any] = field(default_factory=dict)
 

@@ -254,7 +254,46 @@ class SourceAdapter(ABC):
              "dest_subdir": "bi_export",
              "instructions": "Export the BI workbooks/queries package for the dashboards "
              "that read this estate."},
+            # ---- downstream custom apps (Lakebase + Databricks Apps) --------------
+            # Apps built on top of the DW (used by sales / ops / supply-chain teams).
+            # Each app is registered under app/<app_key>/ so its whole surface -- data
+            # model, ETL, backend, API, UI, screenshots -- migrates as one unit.
+            {"kind": "app_model", "label": "App data / domain model",
+             "required": False,
+             "patterns": ["app.json", "app.yaml", "model/*.sql", "model/*.json"],
+             "dest_subdir": "app",
+             "instructions": "For each downstream app, export its data model: an app.json "
+             "manifest (entities, endpoints, screens, ETL bindings) and/or the OLTP DDL / "
+             "JSON schema that MAYA turns into a Lakebase schema."},
+            {"kind": "app_etl", "label": "App ETL (DW -> app datamodel)",
+             "required": False, "patterns": ["etl/*.sql"], "dest_subdir": "app",
+             "instructions": "Export the ETL/SQL that populates the app's datamodel from "
+             "the DW so MAYA can retarget it to land into Lakebase synced tables."},
+            {"kind": "app_api", "label": "App API contract",
+             "required": False,
+             "patterns": ["api/*.json", "api/*.yaml", "openapi.json", "openapi.yaml"],
+             "dest_subdir": "app",
+             "instructions": "Export the app's API contract (OpenAPI / Swagger / Postman) "
+             "so MAYA can regenerate + parity-test the endpoints on Databricks Apps."},
+            {"kind": "app_backend", "label": "App backend source",
+             "required": False, "patterns": ["backend/**"], "dest_subdir": "app",
+             "instructions": "Export the app backend source (zip/repo) for reference so "
+             "MAYA can regenerate an equivalent FastAPI backend on Databricks Apps."},
+            {"kind": "app_ui", "label": "App UI source",
+             "required": False, "patterns": ["ui/**"], "dest_subdir": "app",
+             "instructions": "Export the app UI source (zip/repo) so MAYA can rebuild the "
+             "screens as a Databricks App served UI."},
+            {"kind": "app_screens", "label": "App screenshots (golden UI)",
+             "required": False,
+             "patterns": ["screens/*.png", "screens/*.jpg", "screens/*.jpeg"],
+             "dest_subdir": "app",
+             "instructions": "Upload screenshots of every app screen; MAYA uses them as "
+             "golden references for UI/functional parity certification."},
         ]
+
+    #: app asset kinds (namespaced under app/<app_key>/ in the workspace)
+    APP_KINDS = ("app_model", "app_etl", "app_api", "app_backend", "app_ui",
+                 "app_screens")
 
     # convenience: run collect+parse and persist
     def build_graph(self) -> Graph:

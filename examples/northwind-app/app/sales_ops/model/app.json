@@ -1,0 +1,57 @@
+{
+  "key": "sales_ops",
+  "name": "Sales Ops Console",
+  "description": "A downstream operations app used by the Sales & Ops team, built on top of the Northwind DW. It surfaces the live orders queue, a customer-360 lookup, and product reorder alerts. MAYA migrates it whole to Databricks Lakebase (OLTP) + Databricks Apps on Unity Catalog.",
+  "owner_team": "Sales Operations",
+  "entities": [
+    {
+      "name": "orders_ops",
+      "source": "rdm.mart_sales_daily",
+      "populated_by": "nw_build_marts",
+      "columns": [
+        {"name": "order_date", "type": "date", "pk": true},
+        {"name": "customer_id", "type": "bigint", "pk": true},
+        {"name": "orders", "type": "integer"},
+        {"name": "units", "type": "integer"},
+        {"name": "revenue", "type": "numeric(18,2)"},
+        {"name": "status", "type": "varchar(20)"}
+      ]
+    },
+    {
+      "name": "customer_360",
+      "source": "rdm.mart_customer_360",
+      "populated_by": "nw_build_marts",
+      "columns": [
+        {"name": "customer_id", "type": "bigint", "pk": true},
+        {"name": "customer_name", "type": "varchar(200)"},
+        {"name": "region", "type": "varchar(80)"},
+        {"name": "lifetime_revenue", "type": "numeric(18,2)"},
+        {"name": "last_order_date", "type": "date"},
+        {"name": "web_sessions_30d", "type": "integer"}
+      ]
+    },
+    {
+      "name": "reorder_alerts",
+      "source": "rdm.mart_product_perf",
+      "populated_by": "nw_build_marts",
+      "columns": [
+        {"name": "product_id", "type": "bigint", "pk": true},
+        {"name": "product_name", "type": "varchar(200)"},
+        {"name": "supplier", "type": "varchar(200)"},
+        {"name": "units_on_hand", "type": "integer"},
+        {"name": "reorder_point", "type": "integer"},
+        {"name": "alert", "type": "boolean"}
+      ]
+    }
+  ],
+  "endpoints": [
+    {"method": "GET", "path": "/api/orders", "entity": "orders_ops", "screen": "orders_queue"},
+    {"method": "GET", "path": "/api/customers", "entity": "customer_360", "screen": "customer_lookup"},
+    {"method": "GET", "path": "/api/reorder-alerts", "entity": "reorder_alerts", "screen": "reorder_alerts"}
+  ],
+  "screens": [
+    {"key": "orders_queue", "title": "Orders Queue", "screenshot": "orders_queue.png", "endpoints": ["/api/orders"]},
+    {"key": "customer_lookup", "title": "Customer 360 Lookup", "screenshot": "customer_lookup.png", "endpoints": ["/api/customers"]},
+    {"key": "reorder_alerts", "title": "Reorder Alerts", "screenshot": "reorder_alerts.png", "endpoints": ["/api/reorder-alerts"]}
+  ]
+}

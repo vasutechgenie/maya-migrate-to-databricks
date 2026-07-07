@@ -47,13 +47,88 @@ from . import validation as val
 from . import readiness as readiness_mod
 from . import identity as identity_mod
 from . import enablement as enablement_mod
+from . import apps as apps_mod
 
 
-def _stage0(cfg, progress=None) -> dict:
-    return readiness_mod.run(cfg)
+def _apps(cfg, fn_name: str, *args) -> dict:
+    """Run a downstream-app lifecycle step; never crash a DW migration on app errors.
+
+    Returns the app gate (passed True + skipped when a project has no apps)."""
+    try:
+        return getattr(apps_mod, fn_name)(cfg, *args)
+    except Exception as exc:  # pragma: no cover - defensive
+        return {"passed": False, "error": f"apps.{fn_name}: {exc}", "n_apps": -1}
 
 
-def _stage1(cfg, progress=None) -> dict:
+# --------------------------------------------------------------------------- #
+# execution scope: run the whole lifecycle ("all") or only a layer on top of an
+# already-certified pipeline estate. "bi" re-runs just the dashboard/BI stages;
+# "apps" re-runs just the downstream-app lifecycle (Lakebase + Databricks Apps)
+# WITHOUT touching the pipeline swarm; "bi_apps" does both. This lets a user add
+# BI or App migrations after the data + ETL migration is done, without repeating
+# any pipeline creation.
+# --------------------------------------------------------------------------- #
+SCOPE_ALL = "all"
+BI_STAGES = [5, 8]
+APP_STAGES = [0, 1, 2, 3, 4, 6, 7, 9, 10, 11]
+
+
+def _do_bi(scope: str) -> bool:
+    return scope in (SCOPE_ALL, "bi", "bi_apps")
+
+
+def _do_apps(scope: str) -> bool:
+    return scope in (SCOPE_ALL, "apps", "bi_apps")
+
+
+def _do_pipeline(scope: str) -> bool:
+    return scope == SCOPE_ALL
+
+
+def _skip(n: int, scope: str) -> dict:
+    """A stage that has no work under the current scope: pass without running anything."""
+    return {"stage": n, "passed": True, "skipped": True, "scope": scope}
+
+
+def scope_stages(scope: str) -> list:
+    """The ordered stage numbers a given scope executes."""
+    if scope == "bi":
+        return list(BI_STAGES)
+    if scope == "apps":
+        return list(APP_STAGES)
+    if scope == "bi_apps":
+        return sorted(set(BI_STAGES) | set(APP_STAGES))
+    return sorted(STAGES)
+
+
+def _apps_only_gate(cfg, n: int, scope: str, *apps_args) -> dict:
+    """Run only the downstream-app slice of a stage (used for apps / bi_apps scope)."""
+    if len(apps_args) == 1:
+        app = _apps(cfg, apps_args[0])
+        return {"stage": n, "passed": bool(app.get("passed")), "scope": scope,
+                "apps": app}
+    # (fn_name, *args) form
+    app = _apps(cfg, apps_args[0], *apps_args[1:])
+    return {"stage": n, "passed": bool(app.get("passed")), "scope": scope,
+            "apps": app}
+
+
+def _stage0(cfg, progress=None, scope=SCOPE_ALL) -> dict:
+    if not _do_pipeline(scope):
+        return _apps_only_gate(cfg, 0, scope, "readiness") if _do_apps(scope) \
+            else _skip(0, scope)
+    gate = readiness_mod.run(cfg)
+    app = _apps(cfg, "readiness")
+    gate["apps"] = app
+    gate["passed"] = bool(gate.get("passed")) and bool(app.get("passed"))
+    return gate
+
+
+def _stage1(cfg, progress=None, scope=SCOPE_ALL) -> dict:
+    if not _do_pipeline(scope):
+        # apps re-register (subgraph + Lakebase DDL) without rebuilding the DW graph
+        return _apps_only_gate(cfg, 1, scope, "collect") if _do_apps(scope) \
+            else _skip(1, scope)
     adapter = cfg.load_adapter()
     adapter.build_graph()
     order_mod.run(cfg)
@@ -62,79 +137,157 @@ def _stage1(cfg, progress=None) -> dict:
     except Exception:
         ddl = {}
     contract_mod.generate_all(cfg, ddl_index=ddl)
-    return score_mod.run(cfg)
+    gate = score_mod.run(cfg)
+    app = _apps(cfg, "collect")
+    gate["apps"] = app
+    gate["passed"] = bool(gate.get("passed")) and bool(app.get("passed"))
+    return gate
 
 
-def _stage2(cfg, progress=None) -> dict:
-    return replicate_mod.run(cfg)
+def _stage2(cfg, progress=None, scope=SCOPE_ALL) -> dict:
+    if not _do_pipeline(scope):
+        return _apps_only_gate(cfg, 2, scope, "replicate", "dev") if _do_apps(scope) \
+            else _skip(2, scope)
+    gate = replicate_mod.run(cfg)
+    app = _apps(cfg, "replicate", "dev")
+    gate["apps"] = app
+    gate["passed"] = bool(gate.get("passed")) and bool(app.get("passed"))
+    return gate
 
 
-def _stage3(cfg, progress=None) -> dict:
-    return spec_mod.run(cfg)
+def _stage3(cfg, progress=None, scope=SCOPE_ALL) -> dict:
+    if not _do_pipeline(scope):
+        return _apps_only_gate(cfg, 3, scope, "specs") if _do_apps(scope) \
+            else _skip(3, scope)
+    gate = spec_mod.run(cfg)
+    app = _apps(cfg, "specs")
+    gate["apps"] = app
+    gate["passed"] = bool(gate.get("passed")) and bool(app.get("passed"))
+    return gate
 
 
-def _stage4(cfg, progress=None) -> dict:
+def _stage4(cfg, progress=None, scope=SCOPE_ALL) -> dict:
     """Build + certify (dev): conformance, then the swarm builds every pipeline and
     dev-certifies it on the sample (schema/keys/RI/idempotency). No prod parity yet --
-    that is stage 6, which runs this same authored code against the full data."""
+    that is stage 6, which runs this same authored code against the full data.
+
+    Under a non-`all` scope the pipeline swarm is skipped entirely; only the downstream-app
+    build/dev-certify runs (apps / bi_apps), so pipelines are never re-created."""
+    if not _do_pipeline(scope):
+        if not _do_apps(scope):
+            return _skip(4, scope)
+        app_build = _apps(cfg, "build", "dev")
+        app_cert = _apps(cfg, "certify", "dev")
+        passed = bool(app_build.get("passed")) and bool(app_cert.get("passed"))
+        return {"stage": 4, "passed": passed, "phase": "dev", "scope": scope,
+                "apps": {"build": app_build, "certify": app_cert}}
     conf = conformance_mod.run(cfg)
     if not conf.get("passed"):
         return {"stage": 4, "passed": False, "phase": "dev", "conformance": conf}
     build = orch.build_swarm(cfg, progress=progress)
-    return {"stage": 4, "passed": bool(build.get("passed")), "phase": "dev",
-            "conformance": conf, "build": build}
+    app_build = _apps(cfg, "build", "dev")
+    app_cert = _apps(cfg, "certify", "dev")
+    passed = (bool(build.get("passed")) and bool(app_build.get("passed"))
+              and bool(app_cert.get("passed")))
+    return {"stage": 4, "passed": passed, "phase": "dev",
+            "conformance": conf, "build": build,
+            "apps": {"build": app_build, "certify": app_cert}}
 
 
-def _stage5(cfg, progress=None) -> dict:
+def _stage5(cfg, progress=None, scope=SCOPE_ALL) -> dict:
     """BI convert + dev-certify: convert the BI queries and prove they run clean on the
     dev/sample gold produced by stage 4. No source parity or republish yet -- that is the
     prod BI stage (8), which parity-checks + publishes the SAME converted queries."""
+    if not _do_bi(scope):
+        return _skip(5, scope)
     return bi_mod.run(cfg, phase="dev")
 
 
-def _stage6(cfg, progress=None) -> dict:
+def _stage6(cfg, progress=None, scope=SCOPE_ALL) -> dict:
     """Full load + historical (prod): backfill the full/historical source estate. Offline
     this reuses the deterministic replication (same manifest) tagged as the prod phase; a
     live project loads the real full source into the test schema before prod certification."""
+    if not _do_pipeline(scope):
+        return _apps_only_gate(cfg, 6, scope, "replicate", "prod") if _do_apps(scope) \
+            else _skip(6, scope)
     gate = replicate_mod.run(cfg)
-    return {"stage": 6, "passed": bool(gate.get("passed")), "phase": "prod",
+    app = _apps(cfg, "replicate", "prod")
+    return {"stage": 6, "passed": bool(gate.get("passed")) and bool(app.get("passed")),
+            "phase": "prod",
             "data_mode": "full", "replicate": gate,
             "tables": gate.get("tables"), "views": gate.get("views"),
-            "replicated": gate.get("replicated")}
+            "replicated": gate.get("replicated"), "apps": app}
 
 
-def _stage7(cfg, progress=None) -> dict:
+def _stage7(cfg, progress=None, scope=SCOPE_ALL) -> dict:
     """Build + certify (prod): strict topological certification of the SAME authored code
     (from stage 4) against the full/historical data, to 100% parity. Drift triggers the
-    fix-vs-original loop; the repaired code is the single source of truth for both phases."""
+    fix-vs-original loop; the repaired code is the single source of truth for both phases.
+
+    Under a non-`all` scope the certify swarm is skipped; only the downstream-app
+    build/prod-certify runs (apps / bi_apps) -- pipelines are never re-certified."""
+    if not _do_pipeline(scope):
+        if not _do_apps(scope):
+            return _skip(7, scope)
+        app_build = _apps(cfg, "build", "prod")
+        app_cert = _apps(cfg, "certify", "prod")
+        passed = bool(app_build.get("passed")) and bool(app_cert.get("passed"))
+        return {"stage": 7, "passed": passed, "phase": "prod", "scope": scope,
+                "apps": {"build": app_build, "certify": app_cert}}
     cert = orch.certify_swarm(cfg, progress=progress)
     gates = json.load(open(cfg.out("gates.json"))) if os.path.exists(
         cfg.out("gates.json")) else {}
     waves = {r["pipeline"]: orch._wave(r["wave"]) for r in orch.load_index(cfg)}
     system = val.system_certification(gates, waves=waves)
-    return {"stage": 7, "passed": bool(cert.get("passed")), "phase": "prod",
-            "certify": cert, "system": system}
+    app_build = _apps(cfg, "build", "prod")
+    app_cert = _apps(cfg, "certify", "prod")
+    passed = (bool(cert.get("passed")) and bool(app_build.get("passed"))
+              and bool(app_cert.get("passed")))
+    return {"stage": 7, "passed": passed, "phase": "prod",
+            "certify": cert, "system": system,
+            "apps": {"build": app_build, "certify": app_cert}}
 
 
-def _stage8(cfg, progress=None) -> dict:
+def _stage8(cfg, progress=None, scope=SCOPE_ALL) -> dict:
     """BI parity + publish (prod): parity-check the converted BI queries against the full
     gold vs the real source, then republish + build Genie/Lakeview."""
+    if not _do_bi(scope):
+        return _skip(8, scope)
     return bi_mod.run(cfg, phase="prod")
 
 
-def _stage9(cfg, progress=None) -> dict:
+def _stage9(cfg, progress=None, scope=SCOPE_ALL) -> dict:
+    if not _do_pipeline(scope):
+        return _apps_only_gate(cfg, 9, scope, "docs") if _do_apps(scope) \
+            else _skip(9, scope)
     d = docs_mod.run(cfg)
     p = publish_mod.run(cfg)
-    return {"stage": 9, "passed": bool(d.get("passed") and p.get("passed")),
-            "docs": d, "publish": p}
+    app = _apps(cfg, "docs")
+    return {"stage": 9,
+            "passed": bool(d.get("passed") and p.get("passed") and app.get("passed")),
+            "docs": d, "publish": p, "apps": app}
 
 
-def _stage10(cfg, progress=None) -> dict:
-    return identity_mod.run(cfg)
+def _stage10(cfg, progress=None, scope=SCOPE_ALL) -> dict:
+    if not _do_pipeline(scope):
+        return _apps_only_gate(cfg, 10, scope, "identity") if _do_apps(scope) \
+            else _skip(10, scope)
+    gate = identity_mod.run(cfg)
+    app = _apps(cfg, "identity")
+    gate["apps"] = app
+    gate["passed"] = bool(gate.get("passed")) and bool(app.get("passed"))
+    return gate
 
 
-def _stage11(cfg, progress=None) -> dict:
-    return enablement_mod.run(cfg)
+def _stage11(cfg, progress=None, scope=SCOPE_ALL) -> dict:
+    if not _do_pipeline(scope):
+        return _apps_only_gate(cfg, 11, scope, "deploy") if _do_apps(scope) \
+            else _skip(11, scope)
+    gate = enablement_mod.run(cfg)
+    app = _apps(cfg, "deploy")
+    gate["apps"] = app
+    gate["passed"] = bool(gate.get("passed")) and bool(app.get("passed"))
+    return gate
 
 
 STAGES: Dict[int, tuple] = {
@@ -173,10 +326,16 @@ def _save_state(cfg, state: dict):
         json.dump(state, f, indent=1)
 
 
-def run_stage(cfg, n: int, enforce_prev: bool = True, progress=None) -> dict:
+def run_stage(cfg, n: int, enforce_prev: bool = True, progress=None,
+              scope: str = SCOPE_ALL) -> dict:
     """Run one stage. If enforce_prev, refuse unless stages before n have passed.
 
     An optional `progress` callback receives per-wave/per-pipeline events (Stage 4).
+
+    `scope` selects how much of the stage runs: "all" (default) runs the full stage;
+    "bi" / "apps" / "bi_apps" run only that layer and skip the pipeline swarm. For a
+    scoped run the result is MERGED onto any prior gate for the stage so the existing
+    pipeline certification record is preserved (only the BI/app slice is refreshed).
     """
     if n not in STAGES:
         lo, hi = min(STAGES), max(STAGES)
@@ -187,8 +346,19 @@ def run_stage(cfg, n: int, enforce_prev: bool = True, progress=None) -> dict:
                 "error": f"gate not satisfied: stage {n-1} has not passed "
                          f"(last_passed={state.get('last_passed', -1)})"}
     name, fn = STAGES[n]
-    gate = fn(cfg, progress=progress)
+    gate = fn(cfg, progress=progress, scope=scope)
     gate.setdefault("name", name)
+    prev = state["stages"].get(str(n))
+    if scope != SCOPE_ALL and isinstance(prev, dict):
+        if gate.get("skipped"):
+            # no work this scope: keep the prior (pipeline) gate untouched
+            stored = prev
+        else:
+            # overlay the refreshed BI/app slice on the preserved pipeline gate
+            stored = {**prev, **gate}
+            stored["passed"] = bool(prev.get("passed", True)) and \
+                bool(gate.get("passed", True))
+        gate = stored
     state["stages"][str(n)] = gate
     if gate.get("passed"):
         state["last_passed"] = max(state.get("last_passed", -1), n)
@@ -209,3 +379,39 @@ def run_all(cfg, progress=None) -> dict:
             _save_state(cfg, state)
             break
     return _load_state(cfg)
+
+
+def run_scope(cfg, scope: str, progress=None) -> dict:
+    """Run only a layer (bi / apps / bi_apps) on top of an already-migrated estate.
+
+    Preserves the existing out/stage_state.json (pipeline gates + last_passed) and never
+    calls the pipeline swarm, so no pipeline is re-created. Stops at the first real
+    (non-skipped) failure. Returns the reloaded state.
+    """
+    if scope == SCOPE_ALL:
+        return run_all(cfg, progress=progress)
+    for n in scope_stages(scope):
+        gate = run_stage(cfg, n, enforce_prev=False, progress=progress, scope=scope)
+        if not gate.get("passed") and not gate.get("skipped"):
+            state = _load_state(cfg)
+            state["stopped_at"] = n
+            _save_state(cfg, state)
+            break
+    return _load_state(cfg)
+
+
+def pipelines_certified(cfg) -> bool:
+    """True once the data + ETL (pipeline) migration has produced CERTIFIED pipelines.
+
+    Read from out/gates.json (written by stage 7 / prod certify). Used to gate the
+    BI-only / Apps-only add-on runs so we never schedule a layer on an estate whose
+    pipelines have not been built + certified yet.
+    """
+    path = cfg.out("gates.json")
+    if not os.path.exists(path):
+        return False
+    try:
+        gates = json.load(open(path))
+    except Exception:
+        return False
+    return any((g or {}).get("status") == "CERTIFIED" for g in gates.values())
