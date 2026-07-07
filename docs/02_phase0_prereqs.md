@@ -41,8 +41,8 @@ begin.
 ## Beyond the data estate
 Phase 0 above is *platform* setup. The **non-data** estate - identity, access, secrets,
 data classification, and governance - is collected and gated separately in **Stage 0**
-([00_readiness.md](00_readiness.md)), applied to Unity Catalog in **Stage 7**
+([00_readiness.md](00_readiness.md)), applied to Unity Catalog in **Stage 10**
 ([14_identity_security_governance.md](14_identity_security_governance.md)), and finished
-with enablement, cutover/rollback, and day-2 operations in **Stage 8**
+with enablement, cutover/rollback, and day-2 operations in **Stage 11**
 ([15_enablement_training.md](15_enablement_training.md),
 [16_cutover_rollback_operations.md](16_cutover_rollback_operations.md)).

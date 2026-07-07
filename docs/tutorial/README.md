@@ -10,20 +10,24 @@ nothing built yet), then a **swarm of AI coding agents builds the real pipelines
 wave, each self-validating through MAYA-Dev -> MAYA-SIT -> MAYA-Soak, and finally a
 **whole-system certification** (`maya certify`) declares the migration complete.
 
-Operationally this arc runs as **six gated stages** (see
-[methodology](../01_methodology.md)): **1** collect + score, **2** replicate the estate
-into a test catalog with referential-integrity synthetic data, **3** one spec PDF per
-pipeline, **4** conformance -> agent-swarm build -> strict topological certification,
-**5** BI end to end, **6** generated docs + publish. `make demo` runs all six with the
-deterministic **offline** agent driver, so the whole tutorial is reproducible without any
-external services; the parts below zoom into each primitive the stages call.
+Operationally this arc runs as **twelve gated stages (0-11)** (see
+[methodology](../01_methodology.md)): **0** readiness, **1** collect + score,
+**2** replicate the estate (dev) into a test catalog with referential-integrity synthetic
+data, **3** one spec PDF per pipeline, **4** build + certify (dev) on the ~10k sample,
+**5** BI convert + dev-certify (dev), **6** full load + historical (prod), **7** build +
+certify (prod) with the SAME code at 100% parity, **8** BI parity + publish (prod),
+**9** generated docs + publish, **10** identity + security + governance, **11** enablement +
+go-live. The data + BI layers migrate across two phases (dev sample / prod full) using the
+same code. `make demo` runs all twelve with the deterministic **offline** agent driver, so
+the whole tutorial is reproducible without any external services; the parts below zoom into
+each primitive the stages call.
 
 ## Before you start
 ```bash
 git clone https://github.com/vasutechgenie/maya-migrate-to-databricks
 cd maya-migrate-to-databricks
 pip install -r requirements.txt
-make demo        # runs the six-stage flow end to end (offline)
+make demo        # runs the twelve-stage flow end to end (offline)
 # or: python3 cli.py run --stage all --config examples/northwind/northwind.yaml
 ```
 
@@ -42,10 +46,11 @@ make demo        # runs the six-stage flow end to end (offline)
 | 10 | [Dashboard, BI/Genie, cutover, and your estate](10_dashboard_bi_and_cutover.md) | `cli.py bi ...` / `certify` / `report` | [dashboard](../11_dashboard.md), [BI](../13_bi_layer_migration.md), [execution](../10_execution_plan.md) |
 
 Parts 06-09 are where the **AI agent swarm** builds and self-validates the real pipelines
-(`cli.py build` drives Stage 4 - conformance, wave-by-wave build, strict topological
-certification; `cli.py orchestrate` inspects the per-wave work queue); Part 10 closes the
-loop with the **whole-system certification** (`cli.py certify`) that marks the migration
-complete.
+(`cli.py build` drives Stage 4 - conformance, wave-by-wave build, and dev certification on
+the sample; the SAME authored code is later recertified against the full data at Stage 7;
+`cli.py orchestrate` inspects the per-wave work queue); Part 10 closes the loop with the
+**whole-system certification** (`cli.py certify`) that marks the migration complete, plus
+the late-lifecycle stages (docs at 9, identity at 10, enablement at 11).
 
 Each part is self-contained but they read best in order. By the end you will have taken
 Northwind from raw source metadata to a certified, dashboarded Databricks build - and you

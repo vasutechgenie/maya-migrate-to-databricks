@@ -20,23 +20,37 @@ MAYA prepares deterministic work (contracts, prompts, parity plans); a swarm beh
 Select with `agents.driver` in the project YAML. `agents.concurrency` bounds intra-wave
 parallelism; `agents.max_fix_iters` bounds the drift loop.
 
-## Stage 4 - swarm build + strict certification
+## The swarm across the two build phases (stages 4, 6, 7)
 
-`orchestration.build_swarm(cfg)` (Stage 4b) executes wave by wave with intra-wave
+Build + certify runs in **two phases with the same authored code**. The dev phase (stage 4)
+builds and certifies on the ~10k sample; the prod phase re-certifies the identical code on
+the full data after a full load (stage 6), at stage 7.
+
+`orchestration.build_swarm(cfg)` (Stage 4b, **dev**) executes wave by wave with intra-wave
 parallelism (a bounded `ThreadPoolExecutor`). Per pipeline it: `driver.build` -> write
 `authored/<pipeline>.json` -> validate the spec -> run **MAYA-Dev** parity on the Stage-2
 synthetic dev catalog -> on red, `driver.fix` compares the authored code against the
 original source and retries until green or `max_fix_iters`. The next wave starts only
-after the current wave is authored + dev-green.
+after the current wave is authored + dev-green. Stage 4c then dev-certifies the sample.
 
-`orchestration.certify_swarm(cfg)` (Stage 4c) then certifies **in topological order**: a
+Stage 6 performs the **full load + historical** backfill of the source estate, so the same
+pipelines can be re-proven at full volume.
+
+`orchestration.certify_swarm(cfg)` (Stage 7, **prod**) certifies **in topological order**: a
 pipeline may certify only after all its predecessors are CERTIFIED (independent pipelines
-proceed in parallel). Each runs **MAYA-SIT** (all ten checks) on prod-quality data with
-the same fix-vs-original loop, then soak windows drive final certification. Results are
-written to `out/gates.json` as `{pipeline -> maya_gate() result}`.
+proceed in parallel). Each runs **MAYA-SIT** (all ten checks) on the full/historical data
+with the same fix-vs-original loop, then soak windows drive final certification. Because
+both phases load the same `authored/<pipeline>.json`, any prod repair is persisted back to
+that single source of truth so dev and prod never diverge. Results are written to
+`out/gates.json` as `{pipeline -> maya_gate() result}`.
+
+BI mirrors this split: stage 5 converts + dev-certifies the queries on the sample gold, and
+stage 8 parity-checks + republishes the SAME queries on the full gold.
 
 ```bash
-maya build   --config project.yaml   # Stage 4: conformance -> build (dev) -> certify
+maya build   --config project.yaml                 # Stage 4: conformance -> build (dev) -> dev-certify
+maya run --stage 6 --config project.yaml           # Stage 6: full load + historical (prod)
+maya run --stage 7 --config project.yaml           # Stage 7: certify the SAME code on full data
 maya certify --config project.yaml --gates out/gates.json   # roll gates into system state
 ```
 

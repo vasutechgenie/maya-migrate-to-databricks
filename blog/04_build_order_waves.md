@@ -42,6 +42,12 @@ on another in the same wave. Northwind lays out into five clean waves:
 The table-level order is primary - the real dependency is between tables - and the pipeline
 waves are derived from it.
 
+![The MAYA Command Center Live Swarm view, showing Northwind's five waves building and certifying in topological order](screenshots/04_live_swarm.png)
+
+*Screenshot: the Live Swarm view executes the verified wave plan - agents author, validate, and certify wave by wave, with a barrier between waves - streaming progress in real time.*
+
+*Note: the MAYA Command Center shown here is not a self-service product. To run MAYA on your estate, engage Databricks Professional Services or your Databricks FDE team, or contact srinivas.nelakuditi@databricks.com.*
+
 ## The algorithms
 
 The order is produced with **Tarjan's SCC** algorithm to collapse any cycles into single

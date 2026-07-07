@@ -1,0 +1,330 @@
+{
+  "benchmark": "Nelakuditi Migration Benchmark",
+  "cases": [
+    "dialect_teradata",
+    "northwind",
+    "oracle_to_snowflake",
+    "retail",
+    "ssis_to_workflows",
+    "tpcds",
+    "tpch"
+  ],
+  "corpus": [
+    {
+      "domain": "data_warehouse",
+      "id": "dialect_teradata",
+      "source_platform": "teradata",
+      "target_platform": "databricks",
+      "title": "Teradata dialect translation (TPC-H logic)"
+    },
+    {
+      "domain": "data_warehouse",
+      "id": "northwind",
+      "source_platform": "synapse",
+      "target_platform": "databricks",
+      "title": "Northwind estate migration (Synapse -> Databricks)"
+    },
+    {
+      "domain": "data_warehouse",
+      "id": "oracle_to_snowflake",
+      "source_platform": "oracle",
+      "target_platform": "snowflake",
+      "title": "Sales DW migration (Oracle -> Snowflake)"
+    },
+    {
+      "domain": "data_warehouse",
+      "id": "retail",
+      "source_platform": "postgres",
+      "target_platform": "databricks",
+      "title": "Retail estate migration (Postgres DW -> Databricks)"
+    },
+    {
+      "domain": "etl_orchestration",
+      "id": "ssis_to_workflows",
+      "source_platform": "ssis",
+      "target_platform": "databricks_workflows",
+      "title": "ETL orchestration migration (SSIS -> Databricks Workflows)"
+    },
+    {
+      "domain": "data_warehouse",
+      "id": "tpcds",
+      "source_platform": "ansi",
+      "target_platform": "databricks",
+      "title": "TPC-DS migration (SF1)"
+    },
+    {
+      "domain": "data_warehouse",
+      "id": "tpch",
+      "source_platform": "ansi",
+      "target_platform": "databricks",
+      "title": "TPC-H migration (SF1)"
+    }
+  ],
+  "dimension_labels": {
+    "autonomy": "Autonomy / Automation",
+    "correctness": "Certified Correctness",
+    "cost_efficiency": "Cost / Effort Efficiency",
+    "coverage": "Coverage / Completeness",
+    "determinism": "Determinism / Reproducibility",
+    "evidence": "Evidence / Trust & Governance",
+    "sustained_parity": "Sustained Parity / Anti-Drift",
+    "velocity": "Velocity"
+  },
+  "dimensions": [
+    "correctness",
+    "autonomy",
+    "coverage",
+    "determinism",
+    "sustained_parity",
+    "velocity",
+    "cost_efficiency",
+    "evidence"
+  ],
+  "divisions": {
+    "closed": [
+      {
+        "cases_scored": [
+          "dialect_teradata",
+          "northwind",
+          "retail",
+          "tpcds",
+          "tpch"
+        ],
+        "dimensions": {
+          "autonomy": 100.0,
+          "correctness": 100.0,
+          "cost_efficiency": 97.1175,
+          "coverage": 95.0,
+          "determinism": 100.0,
+          "evidence": 100.0,
+          "sustained_parity": 100.0,
+          "velocity": 100.0
+        },
+        "division": "closed",
+        "mfvi": 98.9617,
+        "per_case": {
+          "dialect_teradata": {
+            "autonomy": 100.0,
+            "correctness": 100.0,
+            "cost_efficiency": 96.0,
+            "coverage": 75.0,
+            "determinism": 100.0,
+            "evidence": 100.0,
+            "sustained_parity": 100.0,
+            "velocity": 100.0
+          },
+          "northwind": {
+            "autonomy": 100.0,
+            "correctness": 100.0,
+            "cost_efficiency": 96.6667,
+            "coverage": 100.0,
+            "determinism": 100.0,
+            "evidence": 100.0,
+            "sustained_parity": 100.0,
+            "velocity": 100.0
+          },
+          "retail": {
+            "autonomy": 100.0,
+            "correctness": 100.0,
+            "cost_efficiency": 96.6667,
+            "coverage": 100.0,
+            "determinism": 100.0,
+            "evidence": 100.0,
+            "sustained_parity": 100.0,
+            "velocity": 100.0
+          },
+          "tpcds": {
+            "autonomy": 100.0,
+            "correctness": 100.0,
+            "cost_efficiency": 99.1111,
+            "coverage": 100.0,
+            "determinism": 100.0,
+            "evidence": 100.0,
+            "sustained_parity": 100.0,
+            "velocity": 100.0
+          },
+          "tpch": {
+            "autonomy": 100.0,
+            "correctness": 100.0,
+            "cost_efficiency": 97.1429,
+            "coverage": 100.0,
+            "determinism": 100.0,
+            "evidence": 100.0,
+            "sustained_parity": 100.0,
+            "velocity": 100.0
+          }
+        },
+        "provenance": {
+          "MEASURED": 40,
+          "NOT-REPORTED": 0,
+          "THIRD-PARTY": 0,
+          "VENDOR-REPORTED": 0
+        },
+        "tool": "MAYA",
+        "version": "maya-oss@offline"
+      }
+    ],
+    "open": [
+      {
+        "cases_scored": [
+          "_aggregate"
+        ],
+        "dimensions": {
+          "autonomy": 95.0,
+          "correctness": 0.0,
+          "cost_efficiency": 94.0,
+          "coverage": 71.0,
+          "determinism": 0.0,
+          "evidence": 33.3333,
+          "sustained_parity": 0.0,
+          "velocity": 19.6078
+        },
+        "division": "open",
+        "mfvi": 37.9274,
+        "per_case": {
+          "_aggregate": {
+            "autonomy": 95.0,
+            "correctness": 0.0,
+            "cost_efficiency": 94.0,
+            "coverage": 71.0,
+            "determinism": 0.0,
+            "evidence": 33.3333,
+            "sustained_parity": 0.0,
+            "velocity": 19.6078
+          }
+        },
+        "provenance": {
+          "MEASURED": 0,
+          "NOT-REPORTED": 3,
+          "THIRD-PARTY": 3,
+          "VENDOR-REPORTED": 2
+        },
+        "tool": "LeapLogic",
+        "version": "Impetus (public, 2026)"
+      },
+      {
+        "cases_scored": [
+          "_aggregate"
+        ],
+        "dimensions": {
+          "autonomy": 80.0,
+          "correctness": 0.0,
+          "cost_efficiency": 80.0,
+          "coverage": 56.6667,
+          "determinism": 0.0,
+          "evidence": 33.3333,
+          "sustained_parity": 0.0,
+          "velocity": 20.0
+        },
+        "division": "open",
+        "mfvi": 32.1667,
+        "per_case": {
+          "_aggregate": {
+            "autonomy": 80.0,
+            "correctness": 0.0,
+            "cost_efficiency": 80.0,
+            "coverage": 56.6667,
+            "determinism": 0.0,
+            "evidence": 33.3333,
+            "sustained_parity": 0.0,
+            "velocity": 20.0
+          }
+        },
+        "provenance": {
+          "MEASURED": 0,
+          "NOT-REPORTED": 3,
+          "THIRD-PARTY": 0,
+          "VENDOR-REPORTED": 5
+        },
+        "tool": "Lakebridge",
+        "version": "Databricks Labs (public, 2026)"
+      },
+      {
+        "cases_scored": [
+          "_aggregate"
+        ],
+        "dimensions": {
+          "autonomy": 90.0,
+          "correctness": 0.0,
+          "cost_efficiency": 0.0,
+          "coverage": 59.1667,
+          "determinism": 0.0,
+          "evidence": 33.3333,
+          "sustained_parity": 0.0,
+          "velocity": 0.0
+        },
+        "division": "open",
+        "mfvi": 24.0417,
+        "per_case": {
+          "_aggregate": {
+            "autonomy": 90.0,
+            "correctness": 0.0,
+            "cost_efficiency": 0.0,
+            "coverage": 59.1667,
+            "determinism": 0.0,
+            "evidence": 33.3333,
+            "sustained_parity": 0.0,
+            "velocity": 0.0
+          }
+        },
+        "provenance": {
+          "MEASURED": 0,
+          "NOT-REPORTED": 5,
+          "THIRD-PARTY": 0,
+          "VENDOR-REPORTED": 3
+        },
+        "tool": "SnowConvert",
+        "version": "Snowflake SnowConvert (public)"
+      },
+      {
+        "cases_scored": [
+          "_aggregate"
+        ],
+        "dimensions": {
+          "autonomy": 70.0,
+          "correctness": 0.0,
+          "cost_efficiency": 0.0,
+          "coverage": 51.6667,
+          "determinism": 0.0,
+          "evidence": 16.6667,
+          "sustained_parity": 0.0,
+          "velocity": 0.0
+        },
+        "division": "open",
+        "mfvi": 19.0833,
+        "per_case": {
+          "_aggregate": {
+            "autonomy": 70.0,
+            "correctness": 0.0,
+            "cost_efficiency": 0.0,
+            "coverage": 51.6667,
+            "determinism": 0.0,
+            "evidence": 16.6667,
+            "sustained_parity": 0.0,
+            "velocity": 0.0
+          }
+        },
+        "provenance": {
+          "MEASURED": 0,
+          "NOT-REPORTED": 5,
+          "THIRD-PARTY": 0,
+          "VENDOR-REPORTED": 3
+        },
+        "tool": "AWS SCT",
+        "version": "AWS Schema Conversion Tool (public)"
+      }
+    ]
+  },
+  "problems": [],
+  "spec_version": "0.1",
+  "weights": {
+    "autonomy": 0.15,
+    "correctness": 0.25,
+    "cost_efficiency": 0.1,
+    "coverage": 0.15,
+    "determinism": 0.1,
+    "evidence": 0.05,
+    "sustained_parity": 0.1,
+    "velocity": 0.1
+  }
+}

@@ -29,6 +29,11 @@ Northwind is also the project's **test fixture**: `tests/` asserts on its exact 
 classifications, and parity targets, so every example in this tutorial stays true as the code
 evolves.
 
+> **A second source, same core.** MAYA is source-agnostic, so the repo also bundles a
+> PostgreSQL retail estate under `examples/retail/` (source DDL in
+> `examples/retail/postgres/schema.sql`), migrated by `adapters/postgres/`. It is the same
+> engine over a different source - see [the adapter model](02_the_adapter_model.md).
+
 ## The full arc
 Everything MAYA does is a function of one normalized graph. The workflow splits into a
 **preview** (nothing is built - a human can review the plan) and a **build + certify** loop

@@ -12,19 +12,33 @@ MAYA ships control tables and dashboard views (`templates/dashboard_control_tabl
 - **v_drift** - open parity failures by reason code.
 - **v_soak_watch** - pipelines in soak with T+7 / T+14 due dates and drift status.
 
-## Migrating the BI layer
+## Migrating the BI layer (two phases)
 Certified gold is only half the value - the dashboards must move and show the same numbers.
+BI migrates in **two phases with the same converted queries**, mirroring the pipeline
+dev/prod split:
+- **Stage 5 (dev)** - right after the dev build, convert each query and dev-certify it on the
+  ~10k sample gold (no source parity, republish, or Genie yet).
+- **Stage 8 (prod)** - after the full load and prod certification, parity-check the same
+  queries on the full gold, then republish and build Lakeview + Genie.
+
 ```bash
-python3 cli.py bi extract --config examples/northwind/northwind.yaml
-python3 cli.py bi genie  --config examples/northwind/northwind.yaml
+python3 cli.py run --stage 5 --config examples/northwind/northwind.yaml   # BI convert + dev-certify
+python3 cli.py bi run        --config examples/northwind/northwind.yaml   # stage 8: parity + publish
+python3 cli.py bi genie      --config examples/northwind/northwind.yaml
 ```
 Per BI object: **extract** (MCP/API or an offline export like `examples/northwind/bi_export/`),
 **AI-convert** the query to Databricks SQL repointed at certified gold, **prove result parity**
 (schema, row count, set equality both ways, checksum, order) with the same drift-loop discipline,
 **republish**, and **replicate** natively as a Lakeview dashboard with an attached **Genie** space.
-BI work starts only after the gold tables it reads are MAYA-certified.
 
-## Cutover
+## Finishing the lifecycle: identity, enablement, cutover
+Before go-live, MAYA also lands the non-data lifecycle: **docs + publish (stage 9)**,
+**identity + security + governance (stage 10)** - the source grant matrix mapped 1:1 to Unity
+Catalog with masks, secrets, and governance - and **enablement + go-live (stage 11)** -
+training, runbooks, and the cutover/rollback/day-2 go-no-go gate
+([../14_identity_security_governance.md](../14_identity_security_governance.md),
+[../15_enablement_training.md](../15_enablement_training.md)).
+
 Because each table is certified and each wave built on certified data, cutover is flipping consumers
 to already-proven tables. But you don't declare "done" on a hunch: `maya certify` rolls every
 per-pipeline gate and every BI object into one whole-system state

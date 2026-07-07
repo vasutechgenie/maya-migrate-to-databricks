@@ -32,3 +32,12 @@ write. DDL: [templates/dashboard_control_tables.sql](../templates/dashboard_cont
 `cli.py report` renders a branded PDF with the coverage funnel, engine catalog, wave
 plan, the 10 checks, and the MAYA two-phase + cost-savings section. See
 [core/reports.py](../core/reports.py).
+
+## Mission control (the MAYA web application)
+The open-source CLI writes the control tables above; the separately delivered **MAYA web
+application** turns them into a live command center. Its mission-control view renders all
+**twelve lifecycle stages (0-11)** as a progress rail (dev vs prod build/BI phases,
+per-stage evidence), a real-time swarm view, and a dependency-graph explorer, alongside an
+**Impact/ROI** panel that contrasts a traditional migration's effort with MAYA's measured
+performance (see the screenshots in the top-level [README](../README.md)). The web app is
+expert-delivered, not self-service.

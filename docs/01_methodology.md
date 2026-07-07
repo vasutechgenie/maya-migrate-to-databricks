@@ -5,40 +5,58 @@ pipeline. The phases below take an estate from raw source artifacts to a
 prod-certified Databricks lakehouse, with the MAYA two-phase validation technique
 making the validation step cheap and the sustained soak making certification durable.
 
-## The six gated stages
+## The twelve gated stages
 
-Operationally MAYA runs as **six hard-gated stages**. Each stage runs its steps,
+Operationally MAYA runs as **twelve hard-gated stages (0-11)**. Each stage runs its steps,
 evaluates a gate, and the orchestrator refuses to advance past a failed gate. The stages
 wrap the phases/gates described later in this doc - they do not replace them; every
 existing verb (`graph`, `order`, `verify`, `context`, `maya sample`, `validate`,
 `certify`, `report`, `bi`) still runs directly as a primitive.
 
+The data + BI layers migrate across **two explicit phases** using the **same code**: a
+**dev** phase on a ~10k referential-integrity-preserving sample (build+certify at stage 4,
+BI convert + dev-certify at stage 5) and a **prod** phase on the full/historical load
+(full load at stage 6, build+certify at stage 7, BI parity + publish at stage 8). Any prod
+fix is persisted back to the single source of truth, so dev and prod never diverge.
+
 ```mermaid
 flowchart TB
+  s0["Stage 0 - readiness: collect identity/access/secrets/classification (non-data estate)"]
   s1["Stage 1 - collect + score (100% traversable; all tables/views/externals identified)"]
-  s2["Stage 2 - replicate ALL tables+views into a test catalog, fill 10k w/ RI or sample"]
+  s2["Stage 2 - replicate (dev): ALL tables+views into a test catalog, RI-filled ~10k sample"]
   s3["Stage 3 - one branded spec PDF per pipeline"]
-  s4["Stage 4 - conformance -> agent-swarm build (dev) -> strict topological certification"]
-  s5["Stage 5 - BI extract -> convert -> result-parity -> republish -> Lakeview/Genie"]
-  s6["Stage 6 - generate full docs (pipelines/tables/views/BI) + publish to GitHub"]
-  s1 -->|gate PASS| s2 --> s3 --> s4 -->|all CERTIFIED| s5 --> s6
+  s4["Stage 4 - build + certify (dev): conformance -> swarm build -> certify on the sample"]
+  s5["Stage 5 - BI convert + dev-certify (dev): convert queries, run clean on the sample gold"]
+  s6["Stage 6 - full load + historical (prod): backfill the full/historical source"]
+  s7["Stage 7 - build + certify (prod): the SAME code CERTIFIED to 100% parity on real data"]
+  s8["Stage 8 - BI parity + publish (prod): same queries parity-checked, republished, Genie"]
+  s9["Stage 9 - docs + publish (pipelines/tables/views/BI) to GitHub"]
+  s10["Stage 10 - identity + security + governance (UC grants/masks/secrets)"]
+  s11["Stage 11 - enablement + go-live (training, cutover/rollback, day-2 ops)"]
+  s0 --> s1 --> s2 --> s3 --> s4 --> s5 --> s6 --> s7 -->|all CERTIFIED| s8 --> s9 --> s10 --> s11
 ```
 
 | Stage | Command | Gate |
 |---|---|---|
+| 0 readiness | `maya readiness` | identity/access/secrets/classification collected + consistent |
 | 1 collect + score | `maya score` (after `graph`/`order`/`context`) | every pipeline 100% traversable, every table/view identified, every external tagged call-as-is, order verifies |
-| 2 replicate | `maya replicate` | every table AND view replicated into `maya.test_catalog` (synthetic 10k w/ referential integrity, or sample-from-source) |
+| 2 replicate (dev) | `maya replicate` | every table AND view replicated into `maya.test_catalog` (synthetic ~10k w/ referential integrity, or sample-from-source) |
 | 3 specs | `maya specs` | exactly one spec PDF per pipeline (+ omnibus) |
-| 4 build + certify | `maya build` | order+specs conform; swarm builds dev-green; every pipeline CERTIFIED in topological order |
-| 5 BI | `maya bi run` | every BI object converted + result-parity + republished + Genie/Lakeview (DONE) |
-| 6 docs + publish | `maya docs` + `maya publish` | docs generated for every object; committed back to the repo |
+| 4 build + certify (dev) | `maya build` | order+specs conform; swarm builds dev-green; every pipeline CERTIFIED on the sample, in topological order |
+| 5 BI convert + dev-certify (dev) | `maya run --stage 5` | every BI object converted + runs clean on the sample gold (no source parity/republish/Genie yet) |
+| 6 full load + historical (prod) | `maya run --stage 6` | the full/historical source backfilled for every pipeline |
+| 7 build + certify (prod) | `maya run --stage 7` | the SAME code CERTIFIED to 100% parity on real data, in topological order |
+| 8 BI parity + publish (prod) | `maya bi run` | the SAME queries result-parity on full gold + republished + Genie/Lakeview (DONE) |
+| 9 docs + publish | `maya docs` + `maya publish` | docs generated for every object; committed back to the repo |
+| 10 identity + security + governance | `maya identity` | source grant matrix mapped 1:1 to UC; every PII column masked; every credential scoped |
+| 11 enablement + go-live | `maya enablement` | training + runbooks + cutover/rollback + day-2 ops; all go/no-go checks green |
 
 Run one stage with `maya run --stage N`, or the whole flow with `maya run --stage all`
 (this is what `make demo` does). State is written to `out/stage_state.json`.
 
 ### MAYA drives the agent swarm (offline or Cursor)
 
-The build/validate/fix work in Stage 4-5 is done by a swarm of AI coding agents behind an
+The build/validate/fix work in the build (4/7) and BI (5/8) stages is done by a swarm of AI coding agents behind an
 `AgentDriver` (see [09_agent_orchestration.md](09_agent_orchestration.md)):
 
 - `agents.driver: offline` (default) - a deterministic, no-LLM backend that authors specs

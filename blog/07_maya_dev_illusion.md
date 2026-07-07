@@ -23,7 +23,9 @@ on every iteration - while the logic is still wrong - is where validation budget
 MAYA's answer, and the reason for the name, is the **illusion of production**. In dev you build
 a small copy of production - every table, but only a few thousand rows each - and prove the
 *logic* there, cheaply. Only once the logic is right do you spend money proving it at scale.
-This part is about that first phase: MAYA-Dev.
+This part is about that first phase: **Stage 4, build+certify-dev** (`--env dev`) - the dev
+half of MAYA's two-phase build+certify. The same code you certify here is what gets re-proven
+at full volume in Stage 7; nothing is rewritten between the two.
 
 ## The catch with naive sampling
 
@@ -52,6 +54,12 @@ The pipeline's five bronze prerequisites become five sample specs. `src.orders` 
 fact grain is genuinely exercised, and the FK closure guarantees that every sampled order
 line points at a product and customer that exist in the sample.
 
+![The MAYA Command Center Build + Certify (dev) view, showing Northwind pipelines dev-certified on the 10k-row sample](screenshots/14_stage04_build_certify_dev.png)
+
+*Screenshot: Stage 4, Build + Certify (dev) - the agent swarm builds each pipeline and dev-certifies it on the ~10k-row sample; real/full data isn't touched here, that happens in the prod build (Stage 7).*
+
+*Note: the MAYA Command Center shown here is not a self-service product. To run MAYA on your estate, engage Databricks Professional Services or your Databricks FDE team, or contact srinivas.nelakuditi@databricks.com.*
+
 ## Determinism is a feature
 
 The sampling seed is fixed (42 in the demo). That's deliberate: a dev sample that changes
@@ -73,8 +81,9 @@ meaningless on a sample:
 - a row-level sample diff (failing keys enumerated old-vs-new).
 
 Row counts, checksums, and aggregate reconciliation at full volume are explicitly **deferred
-to SIT** - there's no point comparing a 10k-row sum to a billion-row sum. You can render the
-dev-phase plan for any pipeline with `cli.py validate --env dev`.
+to the full-volume phase** (Stage 7, `--env sit`) - there's no point comparing a 10k-row sum
+to a billion-row sum. You can render the dev-phase plan for any pipeline with
+`cli.py validate --env dev`.
 
 ## Why this changes the economics
 
@@ -85,7 +94,8 @@ logic; a fraction of the compute. That's the whole trick, and it's why "prove it
 prove it at scale" is a technique and not just a slogan.
 
 Of course, sampled logic proof isn't the end. A pipeline that's correct on 10k rows still has
-to be correct on the real thing. That's MAYA-SIT: full-scale, ten-check parity - and the drift
-loop that runs when a check goes red.
+to be correct on the real thing. That's the second phase of build+certify - **Stage 7**, run
+at full volume (`--env sit`): the same code, ten-check parity, and the drift loop that runs
+when a check goes red.
 
 **Part 7 of 10 - Migrating with MAYA.** Next up, Part 8: "MAYA-SIT: 10-Check Parity & the Drift Loop". The whole framework is open source - clone it and run `make demo`.

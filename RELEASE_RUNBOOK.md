@@ -14,7 +14,7 @@ with your own credentials.
 
 ```bash
 cd maya-oss
-make demo        # full workflow on Northwind (graph -> ... -> orchestrate -> ... -> certify -> report -> bi)
+make demo        # full twelve-stage lifecycle on Northwind (readiness -> ... -> build+certify -> BI -> docs -> identity -> enablement)
 make test        # pytest goldens (or: python3 -m pytest)
 ```
 
@@ -37,7 +37,7 @@ cd maya-oss
 git init
 git add .
 git status                      # sanity-check: no out/, no *.pdf, no publish_pack/ (all gitignored)
-git commit -m "MAYA v0.1.0 - open-source deterministic migration accelerator + Northwind demo"
+git commit -m "MAYA v0.4.1 - open-source deterministic migration accelerator + Northwind demo"
 
 # Option A - GitHub CLI (creates the repo and pushes in one step)
 gh repo create maya-migrate --public --source=. --remote=origin --push
@@ -51,14 +51,14 @@ gh repo create maya-migrate --public --source=. --remote=origin --push
 Tag the release once `main` is up and CI is green:
 
 ```bash
-git tag -a v0.1.0 -m "MAYA v0.1.0"
-git push origin v0.1.0
+git tag -a v0.4.1 -m "MAYA v0.4.1"
+git push origin v0.4.1
 ```
 
 Then, in the GitHub UI:
 - Add repo topics: `databricks`, `data-migration`, `synapse`, `lineage`, `data-engineering`.
 - Set the description to the one-liner from `pyproject.toml`.
-- (Optional) Create a **Release** from tag `v0.1.0` and paste the highlights from `README.md`.
+- (Optional) Create a **Release** from tag `v0.4.1` and paste the highlights from `README.md`.
 - Confirm the **Actions** tab shows the `ci` workflow passing.
 
 ---

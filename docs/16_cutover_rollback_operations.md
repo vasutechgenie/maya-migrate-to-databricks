@@ -1,6 +1,6 @@
-# 16 - Stage 8b: cutover, rollback & day-2 operations
+# 16 - Stage 11b: cutover, rollback & day-2 operations
 
-Stage 8 also produces the go-live plan and the day-2 operating model, then runs the
+Stage 11 also produces the go-live plan and the day-2 operating model, then runs the
 **go/no-go gate** that decides whether the migration can actually be declared complete.
 
 ## Cutover plan
@@ -34,10 +34,11 @@ source schedules disabled and compute deprovisioned, stakeholder sign-off record
   to a secondary region).
 
 ## The go/no-go gate
-Stage 8 PASSes only when every check is green:
+Stage 11 PASSes only when every check is green:
 
-- readiness (Stage 0), data certified (Stages 1-4), BI migrated (Stage 5), docs generated
-  (Stage 6), identity/security (Stage 7), and the enablement artifacts all exist.
+- readiness (Stage 0), data certified (Stages 4, 6, 7), BI dev-certified (Stage 5) and BI
+  parity + republished (Stage 8), docs generated (Stage 9), identity/security (Stage 10),
+  and the enablement artifacts all exist.
 
 On pass it performs the **consolidated docs publish** - data + identity + enablement docs
 committed together (local commit offline; push when `agents.publish_remote: true`). Only

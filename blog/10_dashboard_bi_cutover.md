@@ -37,10 +37,17 @@ The gates run G0 (scope) through G9 (soak-certified) per pipeline, then a single
 `MIGRATION_IN_PROGRESS -> SYSTEM_PROVISIONAL -> MIGRATION_COMPLETE`. So "how far along are we"
 has an exact, defensible answer instead of a vibe - right up to "is the migration done?"
 
+![The MAYA Command Center Mission Control dashboard, showing lifecycle progress, certification, wave rollup, and ROI at a glance](screenshots/02_mission_control.png)
+
+*Screenshot: Mission Control - the whole migration at a glance: twelve-stage progress, certified vs provisional counts, the wave rollup, live telemetry, and the traditional-vs-MAYA ROI.*
+
 ## Migrating the BI layer
 
 Certified gold tables are only half the value - the dashboards on top have to move too, and they
-have to show the *same numbers*. MAYA treats the BI layer as **Stage 5** - its own agent-driven pipeline that runs end to end:
+have to show the *same numbers*. Like build+certify, BI is **two-phase**: MAYA dev-certifies the
+converted dashboards on sampled gold (**Stage 5, bi-convert-dev**), then re-proves parity at full
+volume and republishes (**Stage 8, bi-parity+publish-prod**). It runs as its own agent-driven
+pipeline end to end:
 
 ```bash
 python3 cli.py bi run --config examples/northwind/northwind.yaml
@@ -58,9 +65,15 @@ it reads are MAYA-certified.
 That last point matters: it's how you avoid migrating a dashboard onto numbers that themselves
 aren't proven yet.
 
-## The last stage: generated docs
+![The MAYA Command Center BI Parity + Publish view, showing a legacy query converted to Databricks SQL with parity, republish, and Genie badges](screenshots/18_stage08_bi_parity_publish.png)
 
-The final stage (**Stage 6**) closes the loop on knowledge, not just data. Once everything is
+*Screenshot: Stage 8, BI Parity + Publish - each dashboard's original query is converted to Databricks SQL, proven result-for-result identical, republished, and mirrored as a Genie space.*
+
+*Note: the MAYA Command Center shown here is not a self-service product. To run MAYA on your estate, engage Databricks Professional Services or your Databricks FDE team, or contact srinivas.nelakuditi@databricks.com.*
+
+## Generated docs, then go-live
+
+**Stage 9 (docs+publish)** closes the loop on knowledge, not just data. Once everything is
 certified and the BI layer is live, MAYA generates full documentation for every pipeline, table,
 view, and dashboard - lineage, DDL, and the exact certification status pulled from `gates.json` -
 and publishes it back to the repo:
@@ -73,10 +86,15 @@ python3 cli.py publish --config examples/northwind/northwind.yaml
 So the migrated estate ships with its own accurate, regenerated documentation - the opposite of
 the stale wiki most migrations leave behind.
 
-## Cutover
+## Identity, security, and go-live
 
-Cutover is the payoff of everything before it. Because each table is certified and each wave is
-built on certified data, cutover isn't a leap of faith - it's flipping consumers over to tables
+Certified data and docs still aren't a cutover. **Stage 10 (identity+security+governance)** applies
+the Unity Catalog groups and grants, masking, and secrets the estate needs, and **Stage 11
+(enablement+go-live)** covers training, runbooks, the cutover/rollback plan, and day-2 ops - the
+human side of turning the new platform on.
+
+Cutover itself is the payoff of everything before it. Because each table is certified and each wave
+is built on certified data, cutover isn't a leap of faith - it's flipping consumers over to tables
 that have already been proven equal, including through the soak. And you don't cut over on a hunch
 that "everything's done": `maya certify` rolls every per-pipeline gate and every BI object into
 one whole-system state, and only `MIGRATION_COMPLETE` clears the source for retirement:
@@ -98,14 +116,14 @@ Northwind was the whole workflow in miniature. To run MAYA for real:
    template; ship a small synthetic example alongside it, exactly like Northwind.
 2. **Copy `templates/project_config.example.yaml`** to your own config: point it at your discovery
    folder, set your schema-to-layer map, your dev/sit catalogs, and your soak windows.
-3. **Run the same six stages** you just watched with `maya run --stage all` - or drive each
-   stage yourself - and finish with `maya certify` for the whole-system verdict. Set
+3. **Run the same twelve-stage lifecycle** you just watched with `maya run --stage all` - or drive
+   each stage yourself - and finish with `maya certify` for the whole-system verdict. Set
    `agents.driver: cursor` (with a `CURSOR_API_KEY`) to have real LLM coding agents do the build.
 
 Everything you saw in this series - the graph, the verified waves, the derived contracts, the seven
-engines, the test-catalog replication, the three-phase Dev -> SIT -> Soak gate, and the
-whole-system certification - is source-agnostic. The only thing that changes per source is the
-adapter.
+engines, the test-catalog replication, the two-phase build+certify (sampled dev, then full-volume
+plus soak), the two-phase BI, and the whole-system certification - is source-agnostic. The only
+thing that changes per source is the adapter.
 
 ## Thank you
 

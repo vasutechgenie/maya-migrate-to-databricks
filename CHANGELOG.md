@@ -4,6 +4,39 @@ All notable changes to MAYA are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-07-05
+
+Consistency pass that brings the whole open-source repo in line with the twelve-stage
+(0-11) model: the offline framework artifacts, developer tooling, and reference
+documentation now all use the current stage numbers, and the Postgres source path is
+documented alongside Synapse.
+
+### Changed
+- **Offline artifact renumber.** The deterministic (offline) stage modules now emit
+  stage-correct artifacts: docs `stage6_docs.json` -> `stage9_docs.json` (`core/docs.py`,
+  `"stage": 9`), identity `stage7_identity.sql`/`stage7_gate.json` ->
+  `stage10_identity.sql`/`stage10_gate.json` (`core/identity.py`, `"stage": 10`), and
+  enablement `stage8_gate.json` -> `stage11_gate.json` (`core/enablement.py`,
+  `"stage": 11`). The enablement go/no-go gate now reads the renamed upstream gates and
+  checks data (stages 4, 6, 7), BI dev (5) + prod (8), docs (9), and identity (10). BI
+  gate filenames (`stage5_bi_dev_gate.json`, `stage5_bi_gate.json`) are unchanged.
+- **CLI + Makefile.** `cli.py` prints/help now use stages 9 (docs/publish), 10 (identity),
+  11 (enablement), and `bi run` is phase-aware (Stage 5 dev / Stage 8 prod). The
+  `Makefile` help lists the twelve stages and adds `stage9`/`stage10`/`stage11` targets.
+- **Version alignment.** `pyproject.toml` bumped to match `core.__version__` (0.4.1).
+
+### Added
+- **Documentation refresh to twelve stages.** `docs/` reference pages and the tutorial
+  index now describe the twelve-stage lifecycle, two-phase build+certify (4 dev / 7 prod)
+  and two-phase BI (5 dev / 8 prod), with identity renumbered to Stage 10 and enablement
+  to Stage 11. Adds the PostgreSQL source adapter (`adapters/postgres/`) and the retail
+  (Postgres -> Databricks) example (`examples/retail/`) to the adapter table, adapter
+  guides, and repo layout.
+
+### Fixed
+- `tests/test_stages.py` golden tests renamed and updated for the renumbered offline
+  artifacts (`stage9_docs.json`, `stage10_*`, `stage11_gate.json`).
+
 ## [0.4.0] - 2026-07-05
 
 The **BI layer becomes two-phase**, mirroring the pipeline dev/prod split. The flow grows
@@ -116,5 +149,8 @@ migrating data platforms to Databricks.
 - The runnable Northwind synthetic demo, methodology + tutorial docs, the "Migrating with
   MAYA" blog series, and a deterministic pytest golden suite.
 
+[0.4.1]: https://github.com/vasutechgenie/maya-migrate-to-databricks/releases/tag/v0.4.1
+[0.4.0]: https://github.com/vasutechgenie/maya-migrate-to-databricks/releases/tag/v0.4.0
+[0.3.0]: https://github.com/vasutechgenie/maya-migrate-to-databricks/releases/tag/v0.3.0
 [0.2.0]: https://github.com/vasutechgenie/maya-migrate-to-databricks/releases/tag/v0.2.0
 [0.1.0]: https://github.com/vasutechgenie/maya-migrate-to-databricks/releases/tag/v0.1.0

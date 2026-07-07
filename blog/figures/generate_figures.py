@@ -20,37 +20,44 @@ from figlib import (Fig, INK, NAVY, TEAL, ACCENT, GOLD, SILVER, BRONZE, GREEN, R
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
-# 01 - the MAYA pipeline on Northwind (make demo)
+# 01 - the twelve-stage lifecycle on Northwind (make demo)
 def fig01():
-    f = Fig(1040, 360, "One command, the full arc: `make demo` on Northwind", 1,
-            "Preview the plan, let an AI agent swarm build + certify wave by wave, then "
-            "roll it up to migration complete - clone and run end to end in seconds.")
-    phases = ["graph", "order", "verify", "context", "report",
-              "orchestrate", "sample", "validate", "certify"]
-    subs = ["objects\n+ edges", "waves", "independent\ncheck", "contracts",
-            "PDF\npreview", "agent\nswarm", "illusion\nof prod", "dev/sit\n/soak",
-            "migration\ncomplete"]
-    # preview phases (nothing built yet) vs build+certify loop
-    cols = [TEAL, TEAL, TEAL, TEAL, TEAL, BLUE, BLUE, BLUE, GREEN]
-    n = len(phases)
-    bw, bh = 88, 46
+    f = Fig(1140, 360, "One command, the full lifecycle: `make demo` on Northwind", 1,
+            "Preview, build + certify on a sampled dev catalog, re-prove at full volume, "
+            "then publish and go live - the twelve-stage lifecycle, run end to end in seconds.")
+    subs = ["readiness", "collect\n+ score", "replicate\n(dev)", "specs",
+            "build+cert\n(dev)", "BI conv\n(dev)", "full load\n(prod)",
+            "build+cert\n(prod)", "BI parity\n(prod)", "docs +\npublish",
+            "identity\n+ security", "enable +\ngo-live"]
+    # phase groups: preview/dev-prep (teal), dev build (blue),
+    # prod build (purple), publish + go-live (green)
+    cols = [TEAL, TEAL, TEAL, TEAL, BLUE, BLUE, PURPLE, PURPLE, PURPLE,
+            GREEN, GREEN, GREEN]
+    n = 12
+    bw, bh = 70, 46
     gap = (f.W - 60 - n * bw) / (n - 1)
-    y = 130
-    for i, (p, s, col) in enumerate(zip(phases, subs, cols)):
+    y = 150
+    for i, (s, col) in enumerate(zip(subs, cols)):
         x = 30 + i * (bw + gap)
-        f.box(x, y, bw, bh, p, fill=tint(col, .82), stroke=col, label_size=10.5)
-        f.wrap_center(x + bw / 2, y + bh + 16, s.split("\n"), 7.6, CAPTION)
+        f.box(x, y, bw, bh, str(i), fill=tint(col, .82), stroke=col, label_size=15)
+        f.wrap_center(x + bw / 2, y + bh + 15, s.split("\n"), 7.4, CAPTION)
         if i < n - 1:
-            f.arrow(x + bw, y + bh / 2, x + bw + gap, y + bh / 2, width=1.2)
+            f.arrow(x + bw, y + bh / 2, x + bw + gap, y + bh / 2, width=1.1, head=5)
+    # phase-group labels sit just above their box groups
+    def gx(i):
+        return 30 + i * (bw + gap)
+    f.text(gx(0), y - 18, "preview + dev prep", 8.0, TEAL, bold=True)
+    f.text(gx(4), y - 18, "dev build (sampled)", 8.0, BLUE, bold=True)
+    f.text(gx(6), y - 18, "prod build (full volume)", 8.0, PURPLE, bold=True)
+    f.text(gx(9), y - 18, "publish + go-live", 8.0, GREEN, bold=True)
     f.box(30, 58, 210, 32, "git clone -> pip install", fill=tint(ACCENT, .82),
           stroke=ACCENT, label_size=10)
     f.text(260, 74, "Northwind: a fictional retailer migrating Azure Synapse -> Databricks, "
-           "hand-authored to run green through every phase.", 8.4, CAPTION, italic=True)
-    # phase-group labels sit just above their box groups
-    f.text(30, y - 18, "preview (nothing built yet)", 8.2, TEAL, bold=True)
-    f.text(30 + 5 * (bw + gap), y - 18, "build + certify (AI agent swarm)", 8.2, BLUE,
-           bold=True)
-    f.arrow(120, 90, 74, y - 2, color=ACCENT, width=1.1)
+           "hand-authored to run green through the whole lifecycle.", 8.4, CAPTION,
+           italic=True)
+    f.text(30, 108, "Two-phase build + certify: the SAME code is proven on the sampled dev "
+           "catalog (Stage 4), then re-proven at full volume (Stages 6-7). BI is two-phase "
+           "too (5, 8).", 8.2, CAPTION, italic=True)
     return f
 
 
@@ -211,9 +218,9 @@ def fig06():
 
 # 07 - MAYA-Dev: the illusion of production
 def fig07():
-    f = Fig(840, 420, "MAYA-Dev: prove the logic on an illusion of production", 7,
-            "Every table sampled to a few thousand rows, with foreign-key closure so "
-            "joins still resolve. Iterate fast and cheap.")
+    f = Fig(840, 420, "Stage 4 - Build + Certify (dev): the illusion of production", 7,
+            "Phase one of two-phase build+certify: every table sampled to a few thousand "
+            "rows, with foreign-key closure so joins still resolve. Iterate fast and cheap.")
     f.box(50, 80, 300, 150, fill=tint(RED, .9), stroke=RED, radius=10)
     f.text(200, 102, "Production (full volume)", 9.5, RED, bold=True, anchor="middle")
     for i in range(5):
@@ -237,9 +244,10 @@ def fig07():
 
 # 08 - MAYA-SIT: 10 checks + drift loop
 def fig08():
-    f = Fig(860, 440, "MAYA-SIT: 10-check parity, then the drift loop", 8,
-            "Full-scale parity on production-copied data at a pinned watermark. One red "
-            "check fails the table - no partial credit.")
+    f = Fig(860, 440, "Stage 7 - Build + Certify (prod): 10-check parity + drift loop", 8,
+            "Phase two of build+certify: the SAME code, now at full volume on "
+            "production-copied data at a pinned watermark. One red check fails the table - "
+            "no partial credit.")
     checks = ["1 schema", "2 row count", "3 key parity", "4 checksum", "5 aggregates",
               "6 nulls", "7 ref integrity", "8 no extra out", "9 idempotency",
               "10 row sample"]
@@ -274,12 +282,12 @@ def fig08():
 
 # 09 - MAYA-Soak: sustained parity
 def fig09():
-    f = Fig(880, 400, "MAYA-Soak: provisional now, final after zero drift", 9,
+    f = Fig(880, 400, "Sustained soak (Stage 7): provisional now, final after zero drift", 9,
             "Point-in-time parity proves state; the soak proves the ongoing incremental "
-            "logic stays equal - re-checked at T+7 and T+14.")
+            "logic stays equal - re-checked at T+7 and T+14 before final certification.")
     y = 150
     f.line(60, y, 820, y, color=LINE, width=2)
-    marks = [(60, "Build", "dev + sit green", TEAL),
+    marks = [(60, "Full volume", "dev + prod green", TEAL),
              (300, "Provisional", "cert issued", GOLD),
              (540, "T+7", "re-prove parity", ACCENT),
              (760, "T+14", "final cert", GREEN)]
@@ -302,8 +310,8 @@ def fig10():
             "The estate advances through machine-checked gates; the BI layer is migrated "
             "and mirrored as Genie + Lakeview on the same certified numbers.")
     gates = ["G0", "G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9"]
-    subl = ["scope", "graph", "order", "contract", "build", "dev", "sit", "cutover",
-            "provis.", "soak"]
+    subl = ["scope", "graph", "order", "contract", "build", "dev cert", "prod cert",
+            "cutover", "provis.", "final"]
     n = len(gates)
     bw = (f.W - 60 - (n - 1) * 8) / n
     for i, (g, s) in enumerate(zip(gates, subl)):
@@ -312,7 +320,7 @@ def fig10():
         f.box(x, 80, bw, 44, g, fill=tint(col, .84), stroke=col, label_size=9)
         f.wrap_center(x + bw / 2, 134, [s], 7.2, CAPTION)
     f.box(60, 210, 340, 120, fill=FILL_LT, stroke=NAVY, radius=10)
-    f.text(76, 232, "BI layer migration", 9.5, NAVY, bold=True)
+    f.text(76, 232, "BI layer (two-phase: dev + prod)", 9.5, NAVY, bold=True)
     for i, s in enumerate(["extract (MCP/API)", "AI-convert query", "result parity",
                            "republish + Genie/Lakeview"]):
         f.chip(76, 246 + i * 20, 300, 16, s, fill=NAVY if i % 2 else TEAL, size=7.4)
@@ -341,8 +349,8 @@ def fig_master():
     f.box(360, 70, 460, 250, fill=FILL_LT, stroke=NAVY, radius=10)
     f.text(376, 92, "Source-agnostic core", 10, NAVY, bold=True)
     core = ["Build order + verify", "Contract + classifier", "Engines E1-E7",
-            "Validation (10-check)", "MAYA dev/sit/soak", "Agent orchestration",
-            "Branded reports", "BI + Genie"]
+            "Validation (10-check)", "Two-phase build+certify", "Agent orchestration",
+            "Branded reports", "Two-phase BI + Genie"]
     for i, c in enumerate(core):
         r, col = divmod(i, 2)
         x = 376 + col * 224

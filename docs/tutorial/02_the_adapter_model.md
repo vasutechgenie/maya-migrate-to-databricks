@@ -33,6 +33,14 @@ python3 cli.py graph --config examples/northwind/northwind.yaml
 # graph: 33 objects, 42 edges -> .../examples/northwind/out/objects.csv
 ```
 
+## A second reference adapter: PostgreSQL
+The repo ships a second reference adapter, `adapters/postgres/`, that reuses this same
+fast-path graph/DDL machinery and only swaps the two source-specific pieces (PL/pgSQL ->
+Spark SQL translation and the Postgres export instructions). It migrates the bundled retail
+estate under `examples/retail/` (source DDL in `examples/retail/postgres/schema.sql`) - a
+concrete demonstration that onboarding a new source is "write a thin adapter," not "fork the
+tool." See the [adapter authoring guide](../12_adapter_authoring_guide.md).
+
 ## Home database vs. external
 `home_database` tells MAYA which database you own the code for. Anything else is **external** -
 invoked in place, not rebuilt. In Northwind, `home_database: northwind` makes `ext_erp`,

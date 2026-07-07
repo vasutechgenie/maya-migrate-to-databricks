@@ -16,9 +16,11 @@ image: "figures/08_maya_sit_drift_loop.png"
 
 # MAYA-SIT: 10-check parity and the drift loop
 
-Once a pipeline's logic is proven on the sampled illusion of production, it has to be proven
-at scale. That's **MAYA-SIT**: full-volume parity against production-copied data, pinned to a
-point in time, across ten checks - with **no partial credit.** One red check fails the table.
+Once a pipeline's logic is proven on the sampled illusion of production (Stage 4), it has to be
+proven at scale. That's the second phase of build+certify - **Stage 7, build+certify-prod**
+(`--env sit`): the *same code*, now run at full volume against production-copied data, pinned to
+a point in time, across ten checks - with **no partial credit.** One red check fails the table.
+This is what MAYA-SIT does inside the twelve-stage lifecycle.
 
 ## Point-in-time is non-negotiable
 
@@ -50,6 +52,12 @@ The checksum check is the quietly clever one: hashing each row and summing the h
 the comparison order-independent, so two tables with the same rows in different physical order
 still match - and any single differing value flips the aggregate.
 
+![The MAYA Command Center Build + Certify (prod) view, showing Northwind pipelines prod-certified at full volume with 100% parity](screenshots/17_stage07_build_certify_prod.png)
+
+*Screenshot: Stage 7, Build + Certify (prod) - the same code, now run against full, historical data; a pipeline is certified only when its output matches the source system at 100% parity.*
+
+*Note: the MAYA Command Center shown here is not a self-service product. To run MAYA on your estate, engage Databricks Professional Services or your Databricks FDE team, or contact srinivas.nelakuditi@databricks.com.*
+
 ## No partial credit
 
 "99.9% of rows match" is not a pass. It's a defect with a blast radius, because the next wave
@@ -80,9 +88,10 @@ loop, mismatches get "explained" and waived, and the migration accumulates quiet
 the loop, every discrepancy is either fixed in code or explicitly, accountably accepted as a
 legacy bug. The result is a table you can actually certify and build on.
 
-MAYA-SIT green (together with MAYA-Dev) earns a **provisional** certification. Provisional,
-not final - because there's one more failure mode point-in-time parity can't catch. A pipeline
-can match perfectly at cutover and still drift a week later, as its incremental logic runs day
-after day. Catching that is the job of the phase most migrations skip entirely: the soak.
+Full-volume parity green (on top of the Stage 4 dev proof) earns a **provisional**
+certification. Provisional, not final - because there's one more failure mode point-in-time
+parity can't catch. A pipeline can match perfectly at cutover and still drift a week later, as
+its incremental logic runs day after day. Catching that is the sustained-soak part of Stage 7 -
+the step most migrations skip entirely - which earns the FINAL certification before go-live.
 
 **Part 8 of 10 - Migrating with MAYA.** Next up, Part 9: "MAYA-Soak: Sustained Parity, Zero Drift". The whole framework is open source - clone it and run `make demo`.

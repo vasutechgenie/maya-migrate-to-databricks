@@ -28,10 +28,12 @@ production incident, not a validation finding.
 
 ## The idea: keep both systems running
 
-MAYA-Soak addresses this directly. After a pipeline earns its **provisional** certification
-(MAYA-Dev + MAYA-SIT green), both the old and new systems keep running in parallel, and MAYA
-re-proves parity at scheduled checkpoints - by default **T+7 and T+14 days**. Only when every
-soak window is green with **zero drift** does the pipeline earn **final** certification.
+The soak addresses this directly, and in the twelve-stage lifecycle it's the sustained part of
+**Stage 7, build+certify-prod** (`--env soak`). After a pipeline earns its **provisional**
+certification (the Stage 4 dev proof plus full-volume point-in-time parity green), both the old
+and new systems keep running in parallel, and MAYA re-proves parity at scheduled checkpoints -
+by default **T+7 and T+14 days**. Only when every soak window is green with **zero drift** does
+the pipeline earn **final** certification and clear the path to Stage 11 go-live.
 
 ```bash
 python3 cli.py validate --config examples/northwind/northwind.yaml --pipeline nw_build_marts --env soak
@@ -71,9 +73,9 @@ production. Naming them makes them findable.
 
 Put the whole technique together and certification is a small state machine:
 
-- **BLOCKED** - MAYA-Dev or MAYA-SIT not yet green.
-- **PROVISIONAL** - Dev + SIT green (build-time parity proven), soak in progress.
-- **CERTIFIED** - Dev + SIT green **and** every soak window green (or soak not required).
+- **BLOCKED** - the Stage 4 dev proof or the full-volume point-in-time parity is not yet green.
+- **PROVISIONAL** - both green (build-time parity proven), soak in progress.
+- **CERTIFIED** - both green **and** every soak window green (or soak not required).
 
 The tool encodes this directly in its gate function, and the project's tests assert each
 transition - blocked, provisional, and certified - so the rule can't silently rot. A pipeline

@@ -4,25 +4,34 @@ Each pipeline crosses a fixed sequence of gates. A pipeline is a build unit; a w
 barrier. MAYA adds the validation gates (G6-G9): G6/G7 make build-time certification
 cheap, and G9 (soak) makes it durable.
 
-## Stage gates (the six-stage flow)
+## Stage gates (the twelve-stage flow)
 
-Above the per-pipeline gates below, MAYA runs six **stage** gates end to end. Each writes
-a gate JSON under `out/`; the orchestrator (`core/stages.py`, `maya run`) refuses to
-advance past a failed one and records progress in `out/stage_state.json`.
+Above the per-pipeline gates below, MAYA runs twelve **stage** gates (0-11) end to end.
+Each writes a gate JSON under `out/`; the orchestrator (`core/stages.py`, `maya run`)
+refuses to advance past a failed one and records progress in `out/stage_state.json`. The
+data + BI layers migrate across two explicit phases with the **same code**: a **dev** phase
+on a ~10k RI sample (build+certify at 4, BI convert + dev-certify at 5) and a **prod** phase
+on the full/historical load (full load at 6, build+certify at 7, BI parity + publish at 8).
 
 | Stage gate | Passes when | Artifact |
 |---|---|---|
+| 0 readiness | identity/access/secrets/classification collected + consistent | `stage0_gate.json` |
 | 1 collect + score | every pipeline 100% traversable, all tables/views identified, all externals tagged, order verifies | `stage1_gate.json`, `discovery_score.csv` |
-| 2 replicate | every table AND view present in `maya.test_catalog` (RI-preserving fill) | `stage2_gate.json`, `stage2_replicate.sql` |
+| 2 replicate (dev) | every table AND view present in `maya.test_catalog` (RI-preserving ~10k fill) | `stage2_gate.json`, `stage2_replicate.sql` |
 | 3 specs | one spec PDF per pipeline | `stage3_gate.json`, `specs_pdf/` |
 | 4a conformance | order+waves valid AND every spec PDF conforms to its wave | `stage4_conformance.json` |
-| 4b build | every pipeline authored + MAYA-Dev green on synthetic dev | `stage4_build.json` |
-| 4c certify | every pipeline CERTIFIED in topological order | `gates.json`, `stage4_certify.json` |
-| 5 BI | every BI object DONE (convert + parity + republish + Genie) | `stage5_bi_gate.json` |
-| 6 docs + publish | docs generated for every object + committed | `stage6_docs.json`, `stage6_publish.json` |
+| 4b build (dev) | every pipeline authored + MAYA-Dev green on the synthetic sample | `stage4_build.json` |
+| 4c certify (dev) | every pipeline CERTIFIED on the sample, in topological order | `gates.json`, `stage4_certify.json` |
+| 5 BI convert + dev-certify (dev) | every BI object converted + runs clean on the sample gold (no parity/republish/Genie yet) | `stage5_bi_dev_gate.json` |
+| 6 full load + historical (prod) | the full/historical source backfilled for every pipeline (reuses the replicate step, prod phase) | `stage2_replicate.sql`, `stage_state.json` |
+| 7 build + certify (prod) | the SAME code CERTIFIED to 100% parity on real data, in topological order | `gates.json` |
+| 8 BI parity + publish (prod) | every BI object DONE (parity on full gold + republish + Genie) | `stage5_bi_gate.json` |
+| 9 docs + publish | docs generated for every object + committed | `stage9_docs.json` |
+| 10 identity + security + governance | source grants mapped 1:1 to UC; PII masked; credentials scoped | `stage10_identity.sql`, `stage10_gate.json` |
+| 11 enablement + go-live | training + runbooks + cutover/rollback + day-2 ops; all go/no-go checks green | `stage11_gate.json` |
 
 The per-pipeline gates (G0-G9) and BI gates (B0-B4) below are what a single build unit
-crosses **inside** stages 4 and 5.
+crosses **inside** the build stages (4 dev / 7 prod) and BI stages (5 dev / 8 prod).
 
 ## Gates
 | Gate | Name | Passes when |
@@ -76,8 +85,12 @@ fixed, the window re-backfilled, and the soak clock restarted. Watch it via
 build sprint, plan for final certification to land ~2 weeks after a pipeline's build,
 overlapped across all pipelines rather than added per pipeline.
 
-## BI gates (after gold is certified)
-Once the gold tables a dashboard reads are MAYA-certified, its BI object flows through:
+## BI gates (two phases)
+BI migrates in two phases with the **same converted queries**. In the **dev** phase (stage 5)
+each object crosses B0-B1 and dev-certifies (B2 query-parity) on the sample gold produced by
+the dev build - no republish or Genie yet. In the **prod** phase (stage 8), after the full
+load and prod certification, the same objects re-run B2 on the full gold and continue through
+B3-B4. Once the gold tables a dashboard reads are MAYA-certified, its BI object flows through:
 
 | Gate | Name | Passes when |
 |---|---|---|

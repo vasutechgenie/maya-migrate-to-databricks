@@ -16,6 +16,21 @@ flowchart LR
   par -->|"green"| genie["B4 Lakeview dashboard + Genie space"]
 ```
 
+## Two phases: dev-certify (stage 5) then prod parity + publish (stage 8)
+Like the pipelines, BI migrates across two phases using the **same converted queries**:
+
+- **Stage 5 - BI convert + dev-certify (dev).** Right after the dev build, while the ~10k
+  sample gold still exists, agents extract and convert each query and prove it runs clean on
+  that sample gold (B0-B2). This sets `dev_certified` and writes `stage5_bi_dev_gate.json` -
+  no source parity, no republish, no Genie yet.
+- **Stage 8 - BI parity + publish (prod).** After the full load (stage 6) and prod
+  certification (stage 7), the SAME converted queries are result-parity-checked against the
+  full gold vs the real source, then republished and given Lakeview + Genie (B2 on full data
+  through B4). This writes `stage5_bi_gate.json`.
+
+`core/bi.run(cfg, phase="dev"|"prod")` implements the split; `maya run --stage 5` runs the
+dev phase and `maya bi run` (stage 8) runs the prod phase.
+
 ## Why it is agent-driven over MCP/API
 Every step is performed by agents. Connectors reach the BI tool through its MCP server (or
 REST/XMLA API): export the package, extract each query-bearing object, and later republish.
@@ -57,8 +72,9 @@ get natural-language AI/BI on the exact certified numbers.
 | B3 republish | dashboard republished to the BI tool |
 | B4 genie | Lakeview dashboard + Genie space created |
 
-A BI object is DONE only at B4, and may only start after the gold tables it reads are
-MAYA-certified ([10_execution_plan.md](10_execution_plan.md)).
+A BI object is DONE only at B4 (reached in the prod phase, stage 8). Its dev-certify (stage
+5) proves B0-B2 on the sample gold; full B2 parity + B3-B4 run against the certified full
+gold after prod certification ([10_execution_plan.md](10_execution_plan.md)).
 
 ## MAYA sampling note
 Query-result parity is a result-set comparison, not a full-table scan, so it is cheap even

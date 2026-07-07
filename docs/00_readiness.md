@@ -41,5 +41,5 @@ Stage 1 applies to data.
 ## How it relates to Phase 0
 [02_phase0_prereqs.md](02_phase0_prereqs.md) is the *platform* setup (workspaces,
 catalogs, connections proven). Stage 0 is the *estate* setup: it inventories the identity,
-access, and classification that Stage 7 will translate into Unity Catalog. Do Phase 0
+access, and classification that Stage 10 will translate into Unity Catalog. Do Phase 0
 first; run Stage 0 to prove the non-data estate is complete before building.

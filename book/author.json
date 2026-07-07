@@ -1,0 +1,44 @@
+{
+  "name": "Srinivas Nelakuditi",
+  "headline": "Global Head FDE | Exec Sponsor (CIO/CTO/CISO) | Scaled Enterprise AI Deployments | Field Engineering / Global Partner Leader",
+  "location": "Dallas-Fort Worth Metroplex",
+  "network": "1,167 followers | 500+ connections",
+  "current": "Databricks",
+  "education": "Fairleigh Dickinson University",
+  "entities": [
+    "Databricks",
+    "Fairleigh Dickinson University"
+  ],
+  "about": [
+    "I am a hands-on technical leader with 25+ years of experience building and scaling enterprise data, streaming, and AI platforms. I help large enterprises modernize mission-critical workloads from legacy systems to secure, governed, production-grade platforms. I lead the Forward Deployment Engineering team across the globe.",
+    "In my current and recent roles, I work directly with some of the largest strategic customers, including $100M+ commitment accounts, to onboard complex data and AI workloads across Financial Services, Healthcare and Life Sciences, Retail, Telecom, Manufacturing, and Technology. I partner with CIO, CTO, CISO, data, and business leaders to turn modernization goals into production systems with measurable business impact.",
+    "My background is deeply technical. I have architected and delivered distributed data systems, real-time streaming platforms, CDC and replication frameworks, enterprise reporting modernization, GenAI deployment patterns, and cloud-native data platforms. I have built systems processing billions of events per day and led implementations spanning Spark, Kafka, Delta Lake, cloud storage, ETL/ELT pipelines, data modeling, governance, observability, and production reliability.",
+    "At Databricks, I have helped build and scale repeatable architectures and delivery frameworks for data engineering using Agentic AI, real-time modernization, AI adoption, and agentic transformation. This includes hands-on work in streaming, CDC automation, migration acceleration, RAG, multi-agent systems, tool calling, LLMOps, and secure enterprise deployment. I have also built and led high-impact customer-facing teams, including Resident Solutions Architects and Specialist Solution Architects, while staying close to architecture, delivery strategy, and the hardest technical problems in the field.",
+    "Earlier in my career, I led major modernization programs across finance, telecom, and enterprise data platforms, including finance data integration, large-scale reporting platforms, SAP and Oracle integration, cloud migration, and secure high-volume operational systems. Across roles, my focus has remained consistent: build robust platforms, simplify complexity, raise engineering standards, and translate advanced technology into durable business value."
+  ],
+  "top_skills": [
+    "Large Language Models (LLM)",
+    "NLP / Natural Language Processing",
+    "Apache Spark",
+    "Artificial Intelligence",
+    "AWS"
+  ],
+  "interests": [
+    "Enterprise migration & modernization",
+    "Agentic AI & multi-agent systems",
+    "Real-time streaming & CDC",
+    "Delta Lake & Unity Catalog governance",
+    "LLMOps & RAG",
+    "Databricks Lakehouse platform"
+  ],
+  "follows": [
+    "Unity Catalog",
+    "Amazon Web Services (AWS)",
+    "Prophecy",
+    "Acharya Nagarjuna University",
+    "Coltech"
+  ],
+  "contact_email": "srinivas.nelakuditi@databricks.com",
+  "profile_url": "https://www.linkedin.com/in/srinivasnelakuditi/",
+  "headshot": "assets/headshot.png"
+}

@@ -1,12 +1,12 @@
-# 15 - Stage 8a: enablement & training
+# 15 - Stage 11a: enablement & training
 
 The last mile of a migration is people, not pipelines. A technically perfect cutover
 fails if engineers do not know how to operate the new platform, analysts cannot find the
-migrated marts, and stewards have no process for access reviews. Stage 8 generates the
+migrated marts, and stewards have no process for access reviews. Stage 11 generates the
 enablement material as a first-class, gated artifact.
 
 ## Role-based training packs
-`python3 cli.py enablement --config <project>.yaml` (or `make stage8`) writes a training
+`python3 cli.py enablement --config <project>.yaml` (or `make stage11`) writes a training
 pack per audience under `out/enablement/training/`:
 
 - **Data engineers** - building/operating pipelines with the shared engines, proving
@@ -28,7 +28,7 @@ Operational runbooks under `out/enablement/runbooks/`:
 - **Backfill / reprocessing** - run in wave order, re-prove parity, update watermarks.
 
 ## Why it is gated
-Stage 8's go/no-go gate requires the enablement artifacts to exist alongside every green
-upstream gate (see [16_cutover_rollback_operations.md](16_cutover_rollback_operations.md)).
+Stage 11's go/no-go gate requires the enablement artifacts to exist alongside every green
+upstream gate 0-10 (see [16_cutover_rollback_operations.md](16_cutover_rollback_operations.md)).
 Training is not a nice-to-have slide deck produced after go-live; it is a precondition for
 declaring the migration complete, and it is published with the rest of the docs.

@@ -1,12 +1,12 @@
-# 14 - Stage 7: identity, security & governance
+# 14 - Stage 10: identity, security & governance
 
-Certified data is not the same as a *secure, governed* platform. Stage 7 takes the estate
+Certified data is not the same as a *secure, governed* platform. Stage 10 takes the estate
 collected in Stage 0 and deterministically authors the Unity Catalog security model that
 must exist before go-live - then proves it matches the source (access parity).
 
 ## What it produces
-`python3 cli.py identity --config <project>.yaml` (or `make stage7`) emits
-`out/stage7_identity.sql` and `out/stage7_gate.json`:
+`python3 cli.py identity --config <project>.yaml` (or `make stage10`) emits
+`out/stage10_identity.sql` and `out/stage10_gate.json`:
 
 - **Identity** - account groups + service principals (managed via SCIM; emitted for
   completeness).
@@ -24,7 +24,7 @@ must exist before go-live - then proves it matches the source (access parity).
   `governance:` config block.
 
 ## The access-parity gate
-Stage 7 PASSes only when:
+Stage 10 PASSes only when:
 
 - every source grant is mapped 1:1 (no missing, no extra) - `grants_mapped == grants_total`;
 - every sensitive column has a mask (`unmasked_pii == []`);
@@ -40,7 +40,7 @@ the evidence an auditor asks for: *who can see what, and is sensitive data prote
 Offline (the demo) this is pure SQL/DDL generation - zero Databricks calls - so the plan
 is fully reviewable. With `agents.driver: cursor`, the same plan can be **applied** by the
 agent swarm (create groups, run the grants, attach masks/filters, create the secret
-scope), the same model Stages 4-5 use for building and BI.
+scope), the same model the build stages (4 dev / 7 prod) and BI stages (5 dev / 8 prod) use.
 
 See also: [00_readiness.md](00_readiness.md) (what Stage 0 collects) and
 [13_bi_layer_migration.md](13_bi_layer_migration.md) (BI access).

@@ -2,9 +2,11 @@
 
 Onboarding a new source system (Informatica, SSIS, Teradata, Oracle, Netezza, dbt, ...)
 means writing ONE class: a `SourceAdapter`. Everything else - order, contract, engines,
-MAYA validation, orchestration, reports - is reused unchanged. See
-[adapters/base.py](../adapters/base.py) and the reference
-[adapters/synapse/adapter.py](../adapters/synapse/adapter.py).
+MAYA validation, orchestration, reports - is reused unchanged. Two reference adapters ship:
+[adapters/synapse/adapter.py](../adapters/synapse/adapter.py) (Azure Synapse, runs the
+Northwind demo) and [adapters/postgres/adapter.py](../adapters/postgres/adapter.py)
+(PostgreSQL, exercises the bundled `examples/retail/` estate). See
+[adapters/base.py](../adapters/base.py) for the contract.
 
 ## Implement five methods
 ```python
@@ -26,9 +28,20 @@ class MySourceAdapter(SourceAdapter):
 vocabulary in [03_graph_and_lineage.md](03_graph_and_lineage.md). If you can produce
 that, the whole accelerator works.
 
+## A second reference: PostgreSQL (reuse, don't fork)
+[adapters/postgres/adapter.py](../adapters/postgres/adapter.py) shows how little a new
+source needs. `PostgresAdapter` subclasses `SynapseAdapter` to reuse the same
+normalized-graph fast path (`objects.csv` / `edges.csv` / `connections.csv` + CREATE
+TABLE/VIEW DDL under `artifacts/DW/<db>/<schema>/`) and only swaps the two genuinely
+source-specific pieces: `dialect_translate` (PL/pgSQL / Postgres SQL -> Spark SQL rewrites)
+and the KB manifest instructions for exporting the estate *from Postgres* (`pg_dump -s`,
+`information_schema`, `pg_proc`, in-DB job/control tables). The bundled retail estate
+(`examples/retail/`, with source DDL in `examples/retail/postgres/schema.sql`) is migrated
+this way - proof the core is genuinely source-agnostic.
+
 ## Tips
 - **Fast path** - if a prior tool already produced a graph, load it in `parse()` (as the
-  Synapse adapter does) to get running immediately, then replace with a real parser.
+  Synapse and Postgres adapters do) to get running immediately, then replace with a real parser.
 - **Classification signals** - reuse `DEFAULT_SIGNALS` or pass source-specific `signals`
   to `contract.generate_all` (schema->layer map lives in the project config).
 - **DDL matters for MAYA** - accurate `ddl_index()` gives parity its column lists and

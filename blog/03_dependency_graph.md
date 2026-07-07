@@ -49,6 +49,12 @@ fact. `nw_build_marts` reads `sales.*` and writes the `rdm.*` marts. `nw_qlik_re
 copies the daily mart to `serving`. `nw_daily_master` orchestrates the whole run, and
 `nw_fx_sync` invokes an external FX proc in place.
 
+![The MAYA Command Center Graph Explorer rendering Northwind's 33 objects and 42 edges as wave-colored lineage](screenshots/05_graph_explorer.png)
+
+*Screenshot: the Graph Explorer renders the same derived graph - 33 objects, 42 edges, colored by wave - so the estate is something you can see and query, not a hand-drawn diagram.*
+
+*Note: the MAYA Command Center shown here is not a self-service product. To run MAYA on your estate, engage Databricks Professional Services or your Databricks FDE team, or contact srinivas.nelakuditi@databricks.com.*
+
 ## Why "derived, not drawn" is the whole point
 
 You could draw this diagram by hand. The problem is that hand-drawn lineage rots the moment
