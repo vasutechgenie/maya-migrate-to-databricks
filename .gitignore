@@ -48,6 +48,10 @@ blog/publish_pack/
 # generated PDFs / reports (kept out of the repo; regenerate with `make report`)
 *.pdf
 
+# generated book/value-brief HTML (base64-embedded; regenerate from *_content.py)
+book/book.html
+book/value_brief.html
+
 # os / editor
 .DS_Store
 .idea/
