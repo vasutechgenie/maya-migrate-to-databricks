@@ -149,15 +149,18 @@ lineage) will not pass - which is why the `graph` export is required.
 
 ### A. Web UI
 
-On a project's Knowledge Base panel you get a guided **Export & import checklist** - one
-item per asset kind, each with source-aware step-by-step "how to export" directions and a
-copyable command, its own upload control (files the asset under the correct kind), and a
-live status (Not started -> Uploaded -> Parsed / Failed). An overall progress bar and a
-completion banner show when every required item is parsed. A bulk "drop a `.zip` of
-everything" dropzone (auto-classified) is also available. Click **Regenerate graph** to
-ingest, then **Lock** to freeze the graph. Downstream apps are registered on the Apps page
-(structured form -> `app.json`). The per-source export recipes below (section 6) are what
-the checklist surfaces inline.
+The Knowledge Base screen is a single guided **Export & import checklist** with a slim
+status banner (Regenerate / Lock / Unlock). Each export item has source-aware step-by-step
+"how to export" directions and a copyable command, its own upload control (files the asset
+under the correct kind), and a live status (Not started -> Uploaded -> Parsed / Failed). An
+overall progress bar and completion banner show when every required item is in place. The
+checklist also folds in **live source connections (pull)** (inline bind + Validate) and
+**systems MAYA found** in the graph (one-click register). A bulk "drop a `.zip` of
+everything" dropzone is also available. Systems are declared once on the New Project screen;
+the full estate-systems editor sits in a collapsed **Advanced** accordion. Click
+**Regenerate graph** to ingest, then **Lock** to freeze the graph. Downstream apps are
+registered on the Apps page (structured form -> `app.json`). The per-source export recipes
+below (section 6) are what the checklist surfaces inline.
 
 ### B. REST API
 
