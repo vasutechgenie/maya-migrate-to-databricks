@@ -335,6 +335,7 @@ Northwind demo: [docs/tutorial/](docs/tutorial/README.md).
 - **Enablement & training (Stage 11):** [docs/15_enablement_training.md](docs/15_enablement_training.md).
 - **Cutover, rollback & day-2 ops (Stage 11):** [docs/16_cutover_rollback_operations.md](docs/16_cutover_rollback_operations.md).
 - **Onboard a new source:** [docs/12_adapter_authoring_guide.md](docs/12_adapter_authoring_guide.md).
+- **Knowledge base assets (what to export, by source):** [docs/17_knowledge_base_assets.md](docs/17_knowledge_base_assets.md).
 - **Release notes:** [CHANGELOG.md](CHANGELOG.md).
 - **How MAYA measures up:** the [Nelakuditi Migration Benchmark (NMB)](https://github.com/vasutechgenie/nelakuditi-migration-benchmark) -
   a neutral, reproducible OSS benchmark for enterprise migrations from any source
