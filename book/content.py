@@ -29,7 +29,6 @@ NMB_D = "assets/nmb-logo-dark.png"
 MFVI = "assets/nmb_mfvi.png"
 RADAR = "assets/nmb_radar.png"
 FIG = "../blog/figures/"
-SHOT = "../docs/screenshots/"
 
 PAGES = [
 
@@ -232,32 +231,21 @@ PAGES = [
      ]},
 
     # 15 --- Governance / enablement --------------------------------------
-    {"tpl": "screens2", "kicker": "Governance, people, operations",
+    {"tpl": "prose", "kicker": "Governance, people, operations",
      "title": "The parts most migrations forget",
-     "imgs": [
-         (SHOT + "20_stage10_identity.png",
-          "Stage 10 - Identity, security & governance: source grants mapped "
-          "1:1 to Unity Catalog, every PII column masked, every credential scoped."),
-         (SHOT + "21_stage11_enablement.png",
-          "Stage 11 - Enablement & go-live: training, runbooks, cutover / "
-          "rollback plans, and day-2 operations - all go/no-go checks green."),
+     "body": [
+         ("p", "The last mile is where most migrations quietly fail - the "
+          "governance, the people, and the day-2 operations. MAYA treats them as "
+          "first-class, gated stages, not afterthoughts."),
+         ("bullets", [
+             "Stage 10 - Identity, security & governance: source grants mapped 1:1 "
+             "to Unity Catalog, every PII column masked, every credential scoped.",
+             "Stage 11 - Enablement & go-live: training, runbooks, cutover / "
+             "rollback plans, and day-2 operations - all go/no-go checks green.",
+         ]),
      ]},
 
-    # 16 --- The web command center ---------------------------------------
-    {"tpl": "screens4", "kicker": "The MAYA web application",
-     "title": "A live command center for the whole program",
-     "intro": "Everything runs from the open-source CLI. There is also a full "
-     "MAYA web application - a FastAPI + PostgreSQL + React command center that "
-     "drives the entire twelve-stage lifecycle live against real Databricks "
-     "workspaces.",
-     "imgs": [
-         (SHOT + "02_mission_control.png", "Mission Control - lifecycle + ROI"),
-         (SHOT + "04_live_swarm.png", "Live Swarm - agents building in waves"),
-         (SHOT + "05_graph_explorer.png", "Graph Explorer - the dependency graph"),
-         (SHOT + "17_stage07_build_certify_prod.png", "Stage 7 - certify at scale"),
-     ]},
-
-    # 17 --- DIVIDER Part IV ----------------------------------------------
+    # 16 --- DIVIDER Part IV ----------------------------------------------
     {"tpl": "divider", "part": "Part IV", "title": "The Proof",
      "sub": "Anyone can claim they're fast. MAYA's numbers are measured on a "
             "neutral, reproducible, open-source benchmark - and published."},

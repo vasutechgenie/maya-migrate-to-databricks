@@ -53,13 +53,6 @@ The pipeline's five bronze prerequisites become five sample specs. `src.orders` 
 `src.order_lines` carry larger sample budgets (from `sample_overrides` in the config) so the
 fact grain is genuinely exercised, and the FK closure guarantees that every sampled order
 line points at a product and customer that exist in the sample.
-
-![The MAYA Command Center Build + Certify (dev) view, showing Northwind pipelines dev-certified on the 10k-row sample](screenshots/14_stage04_build_certify_dev.png)
-
-*Screenshot: Stage 4, Build + Certify (dev) - the agent swarm builds each pipeline and dev-certifies it on the ~10k-row sample; real/full data isn't touched here, that happens in the prod build (Stage 7).*
-
-*Note: the MAYA Command Center shown here is not a self-service product. To run MAYA on your estate, engage Databricks Professional Services or your Databricks FDE team, or contact srinivas.nelakuditi@databricks.com.*
-
 ## Determinism is a feature
 
 The sampling seed is fixed (42 in the demo). That's deliberate: a dev sample that changes

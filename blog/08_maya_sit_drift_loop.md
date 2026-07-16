@@ -51,13 +51,6 @@ That renders executable SQL for each of the pipeline's parity targets:
 The checksum check is the quietly clever one: hashing each row and summing the hashes makes
 the comparison order-independent, so two tables with the same rows in different physical order
 still match - and any single differing value flips the aggregate.
-
-![The MAYA Command Center Build + Certify (prod) view, showing Northwind pipelines prod-certified at full volume with 100% parity](screenshots/17_stage07_build_certify_prod.png)
-
-*Screenshot: Stage 7, Build + Certify (prod) - the same code, now run against full, historical data; a pipeline is certified only when its output matches the source system at 100% parity.*
-
-*Note: the MAYA Command Center shown here is not a self-service product. To run MAYA on your estate, engage Databricks Professional Services or your Databricks FDE team, or contact srinivas.nelakuditi@databricks.com.*
-
 ## No partial credit
 
 "99.9% of rows match" is not a pass. It's a defect with a blast radius, because the next wave

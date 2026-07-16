@@ -95,13 +95,6 @@ Two ideas hold the twelve stages together. Build + certify is **two-phase**: the
 is proven cheaply on a sampled dev catalog (Stage 4), then re-proven at full production
 volume (Stages 6-7). BI is **two-phase** the same way (Stage 5 dev, Stage 8 prod). You
 prove the logic before you ever pay for scale.
-
-![The MAYA Command Center Mission Control view, showing Northwind advancing through the twelve-stage lifecycle](screenshots/02_mission_control.png)
-
-*Screenshot: the MAYA Command Center - Mission Control tracks Northwind through all twelve stages, with live certification, wave rollup, and ROI.*
-
-*Note: the MAYA Command Center shown here is not a self-service product. To run MAYA on your estate, engage Databricks Professional Services or your Databricks FDE team, or contact srinivas.nelakuditi@databricks.com.*
-
 MAYA drives the build/validate/fix work in Stages 4, 7, 5, and 8 through an **agent driver**:
 the demo uses a deterministic *offline* backend (no LLM, no network) so the whole thing is
 reproducible; point it at the *Cursor* backend to drive real LLM coding agents on your

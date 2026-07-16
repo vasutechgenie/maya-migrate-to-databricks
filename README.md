@@ -101,52 +101,6 @@ flowchart LR
   enable -->|"go/no-go all green"| sys["System certification: MIGRATION COMPLETE"]
 ```
 
-## The MAYA web application
-
-Everything above runs from the open-source CLI. There is also a full **MAYA web application** -
-a futuristic command center (FastAPI + PostgreSQL + React) that drives the entire twelve-stage
-lifecycle live against real Databricks workspaces, with a knowledge base, an AI-assisted intake,
-a real-time swarm view, a dependency-graph explorer, per-stage evidence, and an Impact/ROI
-dashboard.
-
-> ### This application is delivered by experts - it is not self-service
-> The screenshots below are from the MAYA web application. **It is not an open-source, self-service
-> product.** Standing it up and running a real migration end to end requires the MAYA experts to
-> configure workspaces, connections, and governance and to drive the AI swarm. To evaluate or
-> engage it for your migration, reach the **Databricks Professional Services** team or email
-> **[srinivas.nelakuditi@databricks.com](mailto:srinivas.nelakuditi@databricks.com)**.
-
-### Command center
-
-![Login](docs/screenshots/01_login.png)
-![Mission Control - lifecycle progress and Impact/ROI](docs/screenshots/02_mission_control.png)
-![Knowledge Base](docs/screenshots/03_knowledge_base.png)
-![Live Swarm](docs/screenshots/04_live_swarm.png)
-![Graph Explorer](docs/screenshots/05_graph_explorer.png)
-
-### The twelve lifecycle stages
-
-![Stage 0 - Readiness](docs/screenshots/10_stage00_readiness.png)
-![Stage 1 - Collect + Score](docs/screenshots/11_stage01_score.png)
-![Stage 2 - Replicate (dev)](docs/screenshots/12_stage02_replicate.png)
-![Stage 3 - Specs](docs/screenshots/13_stage03_specs.png)
-![Stage 4 - Build + Certify (dev)](docs/screenshots/14_stage04_build_certify_dev.png)
-![Stage 5 - BI Convert (dev)](docs/screenshots/15_stage05_bi_convert_dev.png)
-![Stage 6 - Full Load (prod)](docs/screenshots/16_stage06_full_load.png)
-![Stage 7 - Build + Certify (prod)](docs/screenshots/17_stage07_build_certify_prod.png)
-![Stage 8 - BI Parity + Publish](docs/screenshots/18_stage08_bi_parity_publish.png)
-![Stage 9 - Docs + Publish](docs/screenshots/19_stage09_docs.png)
-![Stage 10 - Identity + Security](docs/screenshots/20_stage10_identity.png)
-![Stage 11 - Enablement + Go-live](docs/screenshots/21_stage11_enablement.png)
-
-### Operate
-
-![Run History](docs/screenshots/30_runs.png)
-![Artifacts](docs/screenshots/31_artifacts.png)
-![Connections](docs/screenshots/32_connections.png)
-![Admin / RBAC](docs/screenshots/33_admin.png)
-![New Project](docs/screenshots/34_new_project.png)
-
 ## 60-second quickstart (the Northwind demo)
 ```bash
 git clone https://github.com/vasutechgenie/maya-migrate-to-databricks

@@ -36,11 +36,6 @@ The gates run G0 (scope) through G9 (soak-certified) per pipeline, then a single
 (S)** rolls all of them - plus the BI objects - across every wave into one verdict:
 `MIGRATION_IN_PROGRESS -> SYSTEM_PROVISIONAL -> MIGRATION_COMPLETE`. So "how far along are we"
 has an exact, defensible answer instead of a vibe - right up to "is the migration done?"
-
-![The MAYA Command Center Mission Control dashboard, showing lifecycle progress, certification, wave rollup, and ROI at a glance](screenshots/02_mission_control.png)
-
-*Screenshot: Mission Control - the whole migration at a glance: twelve-stage progress, certified vs provisional counts, the wave rollup, live telemetry, and the traditional-vs-MAYA ROI.*
-
 ## Migrating the BI layer
 
 Certified gold tables are only half the value - the dashboards on top have to move too, and they
@@ -64,13 +59,6 @@ it reads are MAYA-certified.
 
 That last point matters: it's how you avoid migrating a dashboard onto numbers that themselves
 aren't proven yet.
-
-![The MAYA Command Center BI Parity + Publish view, showing a legacy query converted to Databricks SQL with parity, republish, and Genie badges](screenshots/18_stage08_bi_parity_publish.png)
-
-*Screenshot: Stage 8, BI Parity + Publish - each dashboard's original query is converted to Databricks SQL, proven result-for-result identical, republished, and mirrored as a Genie space.*
-
-*Note: the MAYA Command Center shown here is not a self-service product. To run MAYA on your estate, engage Databricks Professional Services or your Databricks FDE team, or contact srinivas.nelakuditi@databricks.com.*
-
 ## Generated docs, then go-live
 
 **Stage 9 (docs+publish)** closes the loop on knowledge, not just data. Once everything is
